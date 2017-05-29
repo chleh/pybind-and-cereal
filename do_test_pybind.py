@@ -15,3 +15,5 @@ print(d1, b)
 b.i = 8
 print("d1.i", d1.i)
 
+print("d1.what()", d1.what())
+

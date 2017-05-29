@@ -17,17 +17,6 @@ int main()
 
 
     {
-        Base b;
-        b.i = 1;
-        b.d = 2.5;
-
-        std::ofstream os("archive.xml");
-        cereal::XMLOutputArchive archive(os);
-
-        archive(b);
-    }
-
-    {
         auto d1 = std::make_unique<Derived1>();
         d1->i = 10;
         d1->d = 3.14;

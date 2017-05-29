@@ -12,8 +12,7 @@
 				</value0>
 				<s>hello</s>
 				<b>
-					<i>0</i>
-					<d>0</d>
+					<polymorphic_id>0</polymorphic_id>
 				</b>
 			</data>
 		</ptr_wrapper>
