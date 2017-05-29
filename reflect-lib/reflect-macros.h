@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include "util-macros.h"
@@ -70,7 +71,7 @@ struct Type {
     static_assert(FIELDS_TAG_ == FIELDS_TAG, "Error wrong fields tag"); \
     static_assert(METHODS_TAG_ == METHODS_TAG, "Error wrong methods tag"); \
     struct Meta { \
-        static constexpr decltype(auto) base() { return Type<BASE>{}; } \
+        using base = BASE; \
         static constexpr decltype(auto) name() { return #CLASS; } \
         static constexpr decltype(auto) fields() \
         { \

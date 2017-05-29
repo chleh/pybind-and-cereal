@@ -35,7 +35,7 @@ decltype(auto)
 bind_class(pybind11::module& module, std::false_type)
 {
     return pybind11::class_<Class,
-           typename decltype(Class::Meta::base())::type>(module, Class::Meta::name());
+           typename Class::Meta::base>(module, Class::Meta::name());
 }
 
 // not derived class
@@ -49,7 +49,7 @@ bind_class(pybind11::module& module, std::true_type)
 template<typename Class>
 void bind_with_pybind(pybind11::module& module)
 {
-    auto c = bind_class<Class>(module, std::is_same<decltype(Class::Meta::base()), Type<void>>{});
+    auto c = bind_class<Class>(module, std::is_same<typename Class::Meta::base, void>{});
     c.def(pybind11::init());
 
     visit([&c](auto const& name_member) {

@@ -22,7 +22,7 @@
 template <class Archive, class Object>
 void save(Archive & archive, Object const& obj)
 {
-    save_impl(archive, obj, Object::Meta::fields(), std::is_same<decltype(Object::Meta::base()), Type<void>>{});
+    save_impl(archive, obj, Object::Meta::fields(), std::is_same<typename Object::Meta::base, void>{});
 }
 
 template <class Archive, class Object, class... Pairs>
@@ -48,7 +48,7 @@ void save_impl_no_base(Archive & archive, Object const& obj, std::tuple<Pairs...
 template <class Archive, class Object, class... Pairs, std::size_t... Idcs>
 void save_impl_derived(Archive & archive, Object const& obj, std::tuple<Pairs...>&& fields, std::index_sequence<Idcs...>)
 {
-    archive(cereal::base_class<typename decltype(Object::Meta::base())::type>(&obj),
+    archive(cereal::base_class<typename Object::Meta::base>(&obj),
             cereal::make_nvp(std::get<Idcs>(fields).first, obj.*std::get<Idcs>(fields).second) ...);
 }
 
@@ -57,7 +57,7 @@ void save_impl_derived(Archive & archive, Object const& obj, std::tuple<Pairs...
 template <class Archive, class Object>
 void load(Archive & archive, Object& obj)
 {
-    load_impl(archive, obj, Object::Meta::fields(), std::is_same<decltype(Object::Meta::base()), Type<void>>{});
+    load_impl(archive, obj, Object::Meta::fields(), std::is_same<typename Object::Meta::base, void>{});
 }
 
 template <class Archive, class Object, class... Pairs>
@@ -83,7 +83,7 @@ void load_impl_no_base(Archive & archive, Object& obj, std::tuple<Pairs...>&& fi
 template <class Archive, class Object, class... Pairs, std::size_t... Idcs>
 void load_impl_derived(Archive & archive, Object& obj, std::tuple<Pairs...>&& fields, std::index_sequence<Idcs...>)
 {
-    archive(cereal::base_class<typename decltype(Object::Meta::base())::type>(&obj),
+    archive(cereal::base_class<typename Object::Meta::base>(&obj),
             cereal::make_nvp(std::get<Idcs>(fields).first, obj.*std::get<Idcs>(fields).second) ...);
 }
 
