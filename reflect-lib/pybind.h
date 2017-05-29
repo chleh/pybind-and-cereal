@@ -55,5 +55,8 @@ void bind_with_pybind(pybind11::module& module)
     visit([&c](auto const& name_member) {
             c.def_readwrite(name_member.first, name_member.second);
             }, Class::Meta::fields());
+    visit([&c](auto const& name_member) {
+            c.def(name_member.first, name_member.second);
+            }, Class::Meta::methods());
 }
 

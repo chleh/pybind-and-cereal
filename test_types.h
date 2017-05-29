@@ -7,7 +7,7 @@ struct Base
     int i;
     double d;
 
-    void say_hello() {}
+    std::string say_hello() { return "hello!"; }
 
     virtual ~Base() = default;
 
@@ -19,7 +19,9 @@ struct Derived1 : Base
     std::string s;
     Base b;
 
-    REFLECT_DERIVED(Derived1, Base, FIELDS(s, b), METHODS())
+    Base& get_base() { return *this; }
+
+    REFLECT_DERIVED(Derived1, Base, FIELDS(s, b), METHODS(get_base))
 };
 
 struct Derived2 : Base
