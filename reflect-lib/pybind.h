@@ -4,6 +4,8 @@
 
 #include <pybind11/pybind11.h>
 
+#include "reflect-macros.h"
+
 
 struct NoOp
 {
@@ -27,14 +29,31 @@ void visit_impl(Visitor&& v, std::tuple<Ts...>&& t, std::index_sequence<Idcs...>
     NoOp{ (v(std::forward<Ts>(std::get<Idcs>(t))), 0) ... };
 }
 
+// derived class
+template<typename Class>
+decltype(auto)
+bind_class(pybind11::module& module, std::false_type)
+{
+    return pybind11::class_<Class,
+           typename decltype(Class::Meta::base())::type>(module, Class::Meta::name());
+}
+
+// not derived class
+template<typename Class>
+decltype(auto)
+bind_class(pybind11::module& module, std::true_type)
+{
+    return pybind11::class_<Class>(module, Class::Meta::name());
+}
 
 template<typename Class>
-void wrap_into_pybind(pybind11::module& module)
+void bind_with_pybind(pybind11::module& module)
 {
-    auto c = pybind11::class_<Class>(module, Class::Meta::name())
-        .def(pybind11::init());
+    auto c = bind_class<Class>(module, std::is_same<decltype(Class::Meta::base()), Type<void>>{});
+    c.def(pybind11::init());
 
     visit([&c](auto const& name_member) {
             c.def_readwrite(name_member.first, name_member.second);
             }, Class::Meta::fields());
 }
+
