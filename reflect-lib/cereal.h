@@ -13,6 +13,8 @@
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/base_class.hpp>
 
+#include "reflect-macros.h"
+
 #define REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION(CLASS, BASE) \
     CEREAL_REGISTER_TYPE(CLASS); \
     CEREAL_REGISTER_POLYMORPHIC_RELATION(BASE, CLASS)

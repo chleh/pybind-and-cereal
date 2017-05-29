@@ -1,4 +1,6 @@
-#include "reflect-macros.h"
+#pragma once
+
+#include "reflect-lib/reflect-macros.h"
 
 struct Base
 {
