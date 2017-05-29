@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cereal>
+	<value0>
+		<polymorphic_id>2147483649</polymorphic_id>
+		<polymorphic_name>Derived1</polymorphic_name>
+		<ptr_wrapper>
+			<valid>1</valid>
+			<data>
+				<value0>
+					<i>10</i>
+					<d>3.1400000000000001</d>
+				</value0>
+				<s>hello</s>
+				<b>
+					<i>0</i>
+					<d>0</d>
+				</b>
+			</data>
+		</ptr_wrapper>
+	</value0>
+</cereal>
+
