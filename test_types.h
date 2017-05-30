@@ -2,6 +2,8 @@
 
 #include "reflect-lib/reflect-macros.h"
 
+#include <iostream>
+
 struct Base
 {
     int i;
@@ -19,10 +21,11 @@ struct Derived1 : Base
 {
     std::string s;
     std::unique_ptr<Base> b;
-    // bool b;
 
     Base& get_base() { return *this; }
     std::string what() override { return "der1"; };
+
+    ~Derived1() { std::cout << "~Derived1() s=" << s << '\n'; }
 
     REFLECT_DERIVED(Derived1, Base, FIELDS(s, b), METHODS(get_base))
 };

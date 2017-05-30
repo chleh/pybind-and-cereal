@@ -93,45 +93,47 @@ struct Visitor
 {
     PybindClass& c;
 
-    template <typename T>
-    void operator()(std::pair<const char*, T> const& name_member) const
+    template <typename MemberPtr>
+    void operator()(std::pair<const char*, MemberPtr> const& name_member) const
     {
         op_impl(name_member, Type<typename ResultType<decltype(name_member.second)>::type>{});
     }
 
-    template <typename T, typename Res>
-    void op_impl(std::pair<const char*, T> const& name_member, Type<Res>) const
+    template <typename MemberPtr, typename Res>
+    void op_impl(std::pair<const char*, MemberPtr> const& name_member, Type<Res>) const
     {
         c.def_readwrite(name_member.first, name_member.second);
         // std::cout << "Res: " << typeid(Res).name() << "\n";
     }
 
-    template <typename T, typename UniqueT, typename UniqueD>
-    void op_impl(std::pair<const char*, T> const& name_member,
+    template <typename MemberPtr, typename UniqueT, typename UniqueD>
+    void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::unique_ptr<UniqueT, UniqueD>>) const
     {
-        // TODO: what to do with them?
-        // std::cout << "unique_ptr: _" << name_member.first << "_\n";
-        using Class = typename GetClass<decltype(name_member.second)>::type;
-        using Res   = typename ResultType<decltype(name_member.second)>::type;
         auto const& member_pointer = name_member.second;
+        using Class = typename GetClass<MemberPtr>::type;
+        // using Res   = typename ResultType<MemberPtr>::type;
         pybind11::cpp_function fget(
                 [member_pointer](Class& c) -> UniqueT* {
-                    // std::cout << "hello!\n";
-                    // return 0;
-                    // return *(c.*(name_member.second));
-                    // std::cout << (c.*member_pointer).get() << '\n';
-                    // std::cout << "hello!\n";
                     return (c.*member_pointer).get();
                 },
                 pybind11::is_method(this->c));
+        pybind11::cpp_function fset(
+                [member_pointer](Class& c, pybind11::object& value) {
+                    if (value) { // TODO better check
+                        auto* cpp_value = value.cast<UniqueT*>();
+                        value.inc_ref(); // keeps Python from cleaning value up. probably very problematic!
+                        // value.release(); // keeps Python from cleaning value up. probably very problematic!
+                        (c.*member_pointer).reset(cpp_value);
+                    } else {
+                        (c.*member_pointer).reset();
+                    }
+                },
+                pybind11::is_method(this->c));
 
-        c.def_property_readonly(name_member.first,
-                fget,
+        c.def_property(name_member.first,
+                fget, fset,
                     pybind11::return_value_policy::reference_internal);
-        // c.def_property_readonly(name_member.first,
-        //         pybind11::cpp_function([&](pybind11::object self) { return name_member.second; },
-        //             pybind11::return_value_policy::reference));
     }
 };
 
