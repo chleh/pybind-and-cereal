@@ -17,3 +17,8 @@ print("d1.i", d1.i)
 
 print("d1.what()", d1.what())
 
+if d1.b is not None:
+    print("d1.b", d1.b)
+else:
+    print("d1.b is None")
+

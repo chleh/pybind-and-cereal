@@ -7,7 +7,7 @@
 #include "reflect-macros.h"
 
 
-// #include <iostream>
+#include <iostream>
 // #include <typeinfo>
 
 struct NoOp
@@ -79,10 +79,19 @@ struct ResultType<Res Class::*>
     using type = Res;
 };
 
-template<typename Class>
+template<typename T>
+struct GetClass;
+
+template<typename Res, typename Class>
+struct GetClass<Res Class::*>
+{
+    using type = Class;
+};
+
+template<typename PybindClass>
 struct Visitor
 {
-    Class& c;
+    PybindClass& c;
 
     template <typename T>
     void operator()(std::pair<const char*, T> const& name_member) const
@@ -97,11 +106,32 @@ struct Visitor
         // std::cout << "Res: " << typeid(Res).name() << "\n";
     }
 
-    template <typename T, typename... Ts>
-    void op_impl(std::pair<const char*, T> const& name_member, Type<std::unique_ptr<Ts...>>) const
+    template <typename T, typename UniqueT, typename UniqueD>
+    void op_impl(std::pair<const char*, T> const& name_member,
+            Type<std::unique_ptr<UniqueT, UniqueD>>) const
     {
         // TODO: what to do with them?
         // std::cout << "unique_ptr: _" << name_member.first << "_\n";
+        using Class = typename GetClass<decltype(name_member.second)>::type;
+        using Res   = typename ResultType<decltype(name_member.second)>::type;
+        auto const& member_pointer = name_member.second;
+        pybind11::cpp_function fget(
+                [member_pointer](Class& c) -> UniqueT* {
+                    // std::cout << "hello!\n";
+                    // return 0;
+                    // return *(c.*(name_member.second));
+                    // std::cout << (c.*member_pointer).get() << '\n';
+                    // std::cout << "hello!\n";
+                    return (c.*member_pointer).get();
+                },
+                pybind11::is_method(this->c));
+
+        c.def_property_readonly(name_member.first,
+                fget,
+                    pybind11::return_value_policy::reference_internal);
+        // c.def_property_readonly(name_member.first,
+        //         pybind11::cpp_function([&](pybind11::object self) { return name_member.second; },
+        //             pybind11::return_value_policy::reference));
     }
 };
 
