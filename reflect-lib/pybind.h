@@ -118,6 +118,7 @@ private:
         op_if_copyable(name_member, std::is_copy_constructible<Res>{});
     }
 
+#if 0
     template <typename MemberPtr, typename UniqueT, typename UniqueD>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::unique_ptr<UniqueT, UniqueD>>) const
@@ -147,6 +148,34 @@ private:
                 fget, fset,
                     pybind11::return_value_policy::reference_internal);
     }
+#else
+    template <typename MemberPtr, typename UniqueT, typename UniqueD>
+    void op_impl(std::pair<const char*, MemberPtr> const& name_member,
+            Type<std::unique_ptr<UniqueT, UniqueD>>) const
+    {
+        auto const& member_pointer = name_member.second;
+        using Class = typename GetClass<MemberPtr>::type;
+        // using Res   = typename ResultType<MemberPtr>::type;
+        pybind11::cpp_function fget(
+                [member_pointer](Class& c) -> UniqueT* {
+                    return (c.*member_pointer).get();
+                },
+                pybind11::is_method(this->c));
+        pybind11::cpp_function fset(
+                [member_pointer](Class& c, smart_ptr<UniqueT>& value) {
+                    if (value) { // TODO better check
+                        (c.*member_pointer).reset(value.release());
+                    } else {
+                        (c.*member_pointer).reset();
+                    }
+                },
+                pybind11::is_method(this->c));
+
+        c.def_property(name_member.first,
+                fget, fset,
+                    pybind11::return_value_policy::reference_internal);
+    }
+#endif
 
     template <typename MemberPtr>
     void op_if_copyable(std::pair<const char*, MemberPtr> const& name_member, std::true_type) const

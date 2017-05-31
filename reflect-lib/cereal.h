@@ -12,6 +12,7 @@
 #include <cereal/archives/xml.hpp>
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/base_class.hpp>
+#include <cereal/types/vector.hpp> // TODO also add other
 
 #include "reflect-macros.h"
 

@@ -46,3 +46,9 @@ d1.b = None
 print(tmp, tmp.s)
 del tmp
 
+print("##### cut #####")
+
+# tmp = tp.Derived1()
+# tmp.s = "tmp 2nd"
+
+# d1.b = tmp
