@@ -7,10 +7,16 @@
 #include <pybind11/stl_bind.h>
 
 #include "reflect-macros.h"
+#include "smart_ptr.h"
 
 
 #include <iostream>
 // #include <typeinfo>
+
+
+
+PYBIND11_DECLARE_HOLDER_TYPE(T, smart_ptr<T>);
+
 
 struct NoOp
 {
@@ -40,7 +46,9 @@ decltype(auto)
 bind_class(pybind11::module& module, std::false_type)
 {
     return pybind11::class_<Class,
-           typename Class::Meta::base>(module, Class::Meta::name());
+           typename Class::Meta::base,
+           smart_ptr<Class>
+               >(module, Class::Meta::name());
 }
 
 // not derived class
@@ -48,7 +56,8 @@ template<typename Class>
 decltype(auto)
 bind_class(pybind11::module& module, std::true_type)
 {
-    return pybind11::class_<Class>(module, Class::Meta::name());
+    return pybind11::class_<Class,
+           smart_ptr<Class>>(module, Class::Meta::name());
 }
 
 template <class Class, class... Cs>
