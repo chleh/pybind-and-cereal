@@ -99,11 +99,11 @@ struct Visitor
         op_impl(name_member, Type<typename ResultType<decltype(name_member.second)>::type>{});
     }
 
+private:
     template <typename MemberPtr, typename Res>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member, Type<Res>) const
     {
-        c.def_readwrite(name_member.first, name_member.second);
-        // std::cout << "Res: " << typeid(Res).name() << "\n";
+        op_if_copyable(name_member, std::is_copy_constructible<Res>{});
     }
 
     template <typename MemberPtr, typename UniqueT, typename UniqueD>
@@ -134,6 +134,18 @@ struct Visitor
         c.def_property(name_member.first,
                 fget, fset,
                     pybind11::return_value_policy::reference_internal);
+    }
+
+    template <typename MemberPtr>
+    void op_if_copyable(std::pair<const char*, MemberPtr> const& name_member, std::true_type) const
+    {
+        c.def_readwrite(name_member.first, name_member.second);
+    }
+
+    template <typename MemberPtr>
+    void op_if_copyable(std::pair<const char*, MemberPtr> const& name_member, std::false_type) const
+    {
+        c.def_readonly(name_member.first, name_member.second);
     }
 };
 

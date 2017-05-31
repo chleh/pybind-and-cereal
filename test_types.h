@@ -4,6 +4,19 @@
 
 #include <iostream>
 
+struct NoCopy
+{
+    NoCopy() = default;
+    NoCopy(NoCopy&&) = default;
+    NoCopy(NoCopy const&) = delete;
+    NoCopy& operator=(NoCopy&&) = default;
+    NoCopy& operator=(NoCopy const&) = delete;
+
+    int i = 10;
+
+    REFLECT(NoCopy, FIELDS(i), METHODS())
+};
+
 struct Base
 {
     int i;
@@ -21,13 +34,14 @@ struct Derived1 : Base
 {
     std::string s;
     std::unique_ptr<Base> b;
+    NoCopy nc;
 
     Base& get_base() { return *this; }
     std::string what() override { return "der1"; };
 
     ~Derived1() { std::cout << "~Derived1() s=" << s << '\n'; }
 
-    REFLECT_DERIVED(Derived1, Base, FIELDS(s, b), METHODS(get_base))
+    REFLECT_DERIVED(Derived1, Base, FIELDS(s, b, nc), METHODS(get_base))
 };
 
 struct Derived2 : Base

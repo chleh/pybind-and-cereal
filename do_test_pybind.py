@@ -16,6 +16,9 @@ print(d1, b)
 b.i = 8
 print("d1.i", d1.i)
 
+d1.nc.i = 7
+print("d1.nc.i", d1.nc.i)
+
 print("d1.what()", d1.what())
 
 tmp = tp.Derived1()
@@ -24,7 +27,7 @@ d1.b = tmp
 
 d1a = tp.Derived1()
 d1a.s = "d1a"
-d1a.b = tmp  # BOOM!
+d1a.b = tmp  # BOOM! (on deletion)
 
 if d1.b is not None:
     print("d1.b", d1.b, d1.b.i)
