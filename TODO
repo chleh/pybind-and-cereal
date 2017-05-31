@@ -1,5 +1,6 @@
 
 * const members
 * STL containers
+  * --> name mangling
 * steal from custom shared_ptr
 

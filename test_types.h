@@ -21,13 +21,14 @@ struct Base
 {
     int i;
     double d;
+    std::vector<float> v;
 
     std::string say_hello() { return "hello!"; }
     virtual std::string what() = 0;
 
     virtual ~Base() = default;
 
-    REFLECT(Base, FIELDS(i, d), METHODS(say_hello, what))
+    REFLECT(Base, FIELDS(i, d, v), METHODS(say_hello, what))
 };
 
 struct Derived1 : Base

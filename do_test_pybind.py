@@ -7,6 +7,11 @@ d1.s = "d1"
 
 d1.i = 1
 print("d1.i", d1.i)
+d1.v.append(1.0)
+print("d1.v", d1.v)
+
+d1.v = tp.std__vector__f([1,2,3])
+print("d1.v", d1.v)
 
 print("d1.say_hello()", d1.say_hello())
 
@@ -27,7 +32,9 @@ d1.b = tmp
 
 d1a = tp.Derived1()
 d1a.s = "d1a"
-d1a.b = tmp  # BOOM! (on deletion)
+
+if False:
+    d1a.b = tmp  # BOOM! (on deletion)
 
 if d1.b is not None:
     print("d1.b", d1.b, d1.b.i)

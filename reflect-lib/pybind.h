@@ -1,8 +1,10 @@
 #pragma once
 
+#include <typeinfo>
 #include <utility>
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 
 #include "reflect-macros.h"
 
@@ -92,6 +94,7 @@ template<typename PybindClass>
 struct Visitor
 {
     PybindClass& c;
+    pybind11::module& m;
 
     template <typename MemberPtr>
     void operator()(std::pair<const char*, MemberPtr> const& name_member) const
@@ -147,11 +150,22 @@ private:
     {
         c.def_readonly(name_member.first, name_member.second);
     }
+
+    template <typename MemberPtr, typename VecElem, typename VecAlloc>
+    void op_impl(std::pair<const char*, MemberPtr> const& name_member,
+            Type<std::vector<VecElem, VecAlloc>>) const
+    {
+        // TODO full name mangling, also mangle allovator
+        pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
+                m, std::string{"std__vector__"} + typeid(VecElem).name(),
+                pybind11::buffer_protocol());
+        c.def_readwrite(name_member.first, name_member.second);
+    }
 };
 
-template<typename Class>
-Visitor<Class> makeVisitor(Class& c) {
-    return Visitor<Class>{c};
+template<typename Class, typename... Args>
+Visitor<Class> makeVisitor(Class& c, Args&&... args) {
+    return Visitor<Class>{c, std::forward<Args>(args)...};
 }
 
 template<typename Class>
@@ -163,7 +177,7 @@ void bind_with_pybind(pybind11::module& module)
     // visit([&c](auto const& name_member) {
     //         c.def_readwrite(name_member.first, name_member.second);
     //         }, Class::Meta::fields());
-    auto v = makeVisitor(c);
+    auto v = makeVisitor(c, module);
     visit(v, Class::Meta::fields());
     visit([&c](auto const& name_member) {
             c.def(name_member.first, name_member.second);
