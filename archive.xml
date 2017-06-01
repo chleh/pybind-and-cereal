@@ -9,11 +9,15 @@
 				<value0>
 					<i>10</i>
 					<d>3.1400000000000001</d>
+					<v size="dynamic"/>
 				</value0>
 				<s>hello</s>
 				<b>
 					<polymorphic_id>0</polymorphic_id>
 				</b>
+				<nc>
+					<i>10</i>
+				</nc>
 			</data>
 		</ptr_wrapper>
 	</value0>

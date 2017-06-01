@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include <iostream>
+#include <typeinfo>
 
 template<typename T>
 class smart_ptr final
@@ -11,10 +12,30 @@ class smart_ptr final
     struct item
     {
         item() = default;
-        explicit item(T* p) : ptr{p} {}
+        explicit item(T* p) : ptr{p} {
+            std::cout << "new smartptr item " << typeid(T).name() << " " << p << '\n';
+        }
 
         std::size_t count = 1;
         std::unique_ptr<T> ptr;
+
+        /*
+        ~item() {
+            // std::cout << "smart_ptr item dtor " << typeid(T).name()
+            //     << ' ' << ptr.get() << '\n';
+
+            T* p = ptr.release();
+            if (p) {
+                std::cout << "smart_ptr item being overwritten " << typeid(T).name()
+                    << ' ' << p << '\n';
+                p->~T();
+                std::fill(reinterpret_cast<char*>(p), reinterpret_cast<char*>(p)+sizeof(T), '\0');
+                delete reinterpret_cast<char*>(p);
+                std::cout << "smart_ptr item overwritten " << typeid(T).name()
+                    << ' ' << p << '\n';
+            }
+        }
+        */
     };
 
 public:
@@ -54,7 +75,10 @@ public:
         return p;
     }
 
-    ~smart_ptr() { cleanup(); }
+    ~smart_ptr() {
+        cleanup();
+        // std::cout << "smart_ptr dtor " << typeid(T).name() << '\n';
+    }
 
 private:
     void cleanup() {
