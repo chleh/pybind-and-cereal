@@ -164,7 +164,8 @@ private:
         pybind11::cpp_function fset(
                 [member_pointer](Class& c, smart_ptr<UniqueT>& value) {
                     if (value) { // TODO better check
-                        (c.*member_pointer).reset(value.release());
+                        (c.*member_pointer).reset(value.steal());
+                        std::cout << "stolen: " << value.get() << '\n';
                     } else {
                         (c.*member_pointer).reset();
                     }

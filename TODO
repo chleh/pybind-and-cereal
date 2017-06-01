@@ -3,4 +3,7 @@
 * STL containers
   * --> name mangling
 * steal from custom shared_ptr
+  * go back to custom unique_ptr, provide item copier/mover there
+* overridden methods
+* static methods
 

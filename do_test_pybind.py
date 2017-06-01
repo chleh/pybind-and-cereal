@@ -30,6 +30,10 @@ tmp = tp.Derived1()
 tmp.s = "tmp"
 d1.b = tmp
 
+# python still references the "stolen" object :-(
+print("tmp after steal", tmp)
+print("tmp.s after steal", tmp.s)
+
 d1a = tp.Derived1()
 d1a.s = "d1a"
 

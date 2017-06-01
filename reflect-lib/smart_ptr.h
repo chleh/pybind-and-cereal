@@ -1,35 +1,69 @@
 #pragma once
 
+#include <memory>
+#include <cassert>
+
+#include <iostream>
+
 template<typename T>
 class smart_ptr final
 {
+    struct item
+    {
+        item() = default;
+        explicit item(T* p) : ptr{p} {}
+
+        std::size_t count = 1;
+        std::unique_ptr<T> ptr;
+    };
+
 public:
-    smart_ptr() = default;
-    // template<typename... Args>
-    // smart_ptr(Args&&... args) : ptr(new T{std::forward<Args>(args)...}) {}
+    smart_ptr() : i{new item} {}
 
-    // template<typename U>
-    smart_ptr(T* p) : ptr(p) {}
+    explicit smart_ptr(T* p) : i{new item{p}} {}
 
-    smart_ptr(smart_ptr<T> const&) = default;
-    smart_ptr(smart_ptr<T>&&) = default;
+private:
+    item& add_owner(item& i_) { i_.count++; return i_; }
+    smart_ptr(item& i_) : i{&add_owner(i_)} {}
 
-    smart_ptr<T>& operator=(smart_ptr<T> const&) = default;
+public:
+    smart_ptr(smart_ptr<T> const& other) : smart_ptr{*other.i} {}
+    smart_ptr(smart_ptr<T>&& other) { std::swap(i, other.i); }
+
+    smart_ptr<T>& operator=(smart_ptr<T> const& other) {
+        cleanup();
+        add_owner(*other.i);
+        i = other.i;
+        return *this;
+    }
     smart_ptr<T>& operator=(smart_ptr<T>&& other) {
-        std::swap(ptr, other.ptr);
-        delete other.ptr;
+        std::swap(i, other.i);
+        other.cleanup();
         return *this;
     }
 
-    T* get() const { return ptr; }
-    T& operator*() const { return *ptr; }
+    T* get() const { return i->ptr.get(); }
+    T& operator*() const { return *(i->ptr); }
 
-    explicit operator bool() const { return ptr == nullptr; }
+    explicit operator bool() const { return static_cast<bool>(i->ptr); }
 
-    T* release() { T* tmp = ptr; ptr = nullptr; return tmp; }
+    T* steal() {
+        assert(i);
+        T* p = i->ptr.release();
+        cleanup();
+        return p;
+    }
 
-    ~smart_ptr() { delete ptr; }
+    ~smart_ptr() { cleanup(); }
 
 private:
-    T* ptr = nullptr;
+    void cleanup() {
+        assert(i);
+        if (!--(i->count)) {
+            delete i;
+        }
+        i = new item();
+    }
+
+    item* i = nullptr;
 };
