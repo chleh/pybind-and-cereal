@@ -29,30 +29,32 @@ print("d1.what()", d1.what())
 print("new: tmp")
 tmp = tp.Derived1()
 tmp.s = "tmp"
-d1.b = tmp
+d1.b_MOVE_IN = tmp
+# d1.b_COPY_IN = tmp  ## tmp is not copyable!
 
-print("tmp after steal", tmp)
-print("tmp.s after steal", tmp.s)
+print("tmp after move", tmp)
+print("tmp.s after move \"{}\"".format(tmp.s))
 print("d1.b", d1.b)
 
 print("del d1")
 del d1
 
-# BOOM!
-# The python interpreter maybe caches the tmp object.
-# This assignmen causes a segfault.
-# Conclusion: Moving around pointers on the C++ side is dangerous!
-#             And may cause hard to find bugs.
-# At the bottom of the problem is that the lifetime of tmp is governed by d1
-# after the assignment above. Python does not know about this.
-# The reference tmp is invalidated by deleting d1.
-# The same can happen if one receives references to C++ objects, which are
-# destroyed subsequently without Python noticing it.
-tmp.s = "500000000000000000000000000000000000000000000000000000000000000000" * 100
+if False:
+    # BOOM! -- Fixed in the current implementation
+    # The python interpreter maybe caches the tmp object.
+    # This assignmen causes a segfault.
+    # Conclusion: Moving around pointers on the C++ side is dangerous!
+    #             And may cause hard to find bugs.
+    # At the bottom of the problem is that the lifetime of tmp is governed by d1
+    # after the assignment above. Python does not know about this.
+    # The reference tmp is invalidated by deleting d1.
+    # The same can happen if one receives references to C++ objects, which are
+    # destroyed subsequently without Python noticing it.
+    tmp.s = "500000000000000000000000000000000000000000000000000000000000000000" * 100
 
-# python still references the "stolen" object :-(
-print("tmp after steal", tmp)
-print("tmp.s after steal", tmp.s)
+    # python still references the "stolen" object :-(
+    print("tmp after move", tmp)
+    print("tmp.s after move \"{}\"".format(tmp.s))
 
 del tmp
 

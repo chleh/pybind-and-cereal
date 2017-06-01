@@ -4,6 +4,7 @@
   * --> name mangling
 * steal from custom shared_ptr
   * go back to custom unique_ptr, provide item copier/mover there
+  * maybe it's comparably reasonable to keep moving pointers around
 * overridden methods
 * static methods
 

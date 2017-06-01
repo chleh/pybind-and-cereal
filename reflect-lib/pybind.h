@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <typeinfo>
 #include <utility>
 
@@ -118,7 +119,6 @@ private:
         op_if_copyable(name_member, std::is_copy_constructible<Res>{});
     }
 
-#if 0
     template <typename MemberPtr, typename UniqueT, typename UniqueD>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::unique_ptr<UniqueT, UniqueD>>) const
@@ -131,54 +131,44 @@ private:
                     return (c.*member_pointer).get();
                 },
                 pybind11::is_method(this->c));
-        pybind11::cpp_function fset(
-                [member_pointer](Class& c, pybind11::object& value) {
-                    if (value) { // TODO better check
-                        auto* cpp_value = value.cast<UniqueT*>();
-                        value.inc_ref(); // keeps Python from cleaning value up. probably very problematic!
-                        // value.release(); // keeps Python from cleaning value up. probably very problematic!
-                        (c.*member_pointer).reset(cpp_value);
-                    } else {
-                        (c.*member_pointer).reset();
-                    }
-                },
-                pybind11::is_method(this->c));
+        c.def_property_readonly(name_member.first,
+                fget, pybind11::return_value_policy::reference_internal);
 
-        c.def_property(name_member.first,
-                fget, fset,
-                    pybind11::return_value_policy::reference_internal);
-    }
-#else
-    template <typename MemberPtr, typename UniqueT, typename UniqueD>
-    void op_impl(std::pair<const char*, MemberPtr> const& name_member,
-            Type<std::unique_ptr<UniqueT, UniqueD>>) const
-    {
-        auto const& member_pointer = name_member.second;
-        using Class = typename GetClass<MemberPtr>::type;
-        // using Res   = typename ResultType<MemberPtr>::type;
-        pybind11::cpp_function fget(
-                [member_pointer](Class& c) -> UniqueT* {
-                    return (c.*member_pointer).get();
-                },
-                pybind11::is_method(this->c));
-        pybind11::cpp_function fset(
-                [member_pointer](Class& c, smart_ptr<UniqueT>& value) {
-                    if (value) { // TODO better check
-                        auto* p = value.steal();
-                        (c.*member_pointer).reset(p);
-                        std::cout << "stolen: " << value.get()
-                            << " --> " << p << '\n';
-                    } else {
-                        (c.*member_pointer).reset();
-                    }
-                },
-                pybind11::is_method(this->c));
+        using namespace std::literals::string_literals;
+        // TODO reenable if also examining if UniqueT is final
+        // if (std::is_copy_constructible<UniqueT>::value)
+        {
+            pybind11::cpp_function fget(
+                    [](Class& c) -> UniqueT* {
+                        // TODO error message
+                        throw pybind11::key_error{};
+                    },
+                    pybind11::is_method(this->c));
+            pybind11::cpp_function fset(
+                    [member_pointer](Class& c, smart_ptr<UniqueT>& value) {
+                        (c.*member_pointer).reset(value.new_copied());
+                    },
+                    pybind11::is_method(this->c));
 
-        c.def_property(name_member.first,
-                fget, fset,
-                    pybind11::return_value_policy::reference_internal);
+            c.def_property((name_member.first + "_COPY_IN"s).c_str(), fget, fset);
+        }
+        // if (std::is_move_constructible<UniqueT>::value)
+        {
+            pybind11::cpp_function fget(
+                    [](Class& c) -> UniqueT* {
+                        // TODO error message
+                        throw pybind11::key_error{};
+                    },
+                    pybind11::is_method(this->c));
+            pybind11::cpp_function fset(
+                    [member_pointer](Class& c, smart_ptr<UniqueT>& value) {
+                        (c.*member_pointer).reset(value.new_moved());
+                    },
+                    pybind11::is_method(this->c));
+
+            c.def_property((name_member.first + "_MOVE_IN"s).c_str(), fget, fset);
+        }
     }
-#endif
 
     template <typename MemberPtr>
     void op_if_copyable(std::pair<const char*, MemberPtr> const& name_member, std::true_type) const
@@ -196,7 +186,7 @@ private:
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::vector<VecElem, VecAlloc>>) const
     {
-        // TODO full name mangling, also mangle allovator
+        // TODO full name mangling, also mangle allocator
         pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
                 m, std::string{"std__vector__"} + typeid(VecElem).name(),
                 pybind11::buffer_protocol());

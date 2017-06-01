@@ -6,36 +6,46 @@
 #include <iostream>
 #include <typeinfo>
 
+// TODO use something like std::shared_ptr<Item<T>> instead
+// Why not unique_ptr? --> Because it has to be copyable.
 template<typename T>
 class smart_ptr final
 {
     struct item
     {
+        using MoveFct = T*(*)(T&&);
+        using CopyFct = T*(*)(T const&);
+
+        static MoveFct make_mover() { return make_mover(std::is_move_constructible<T>{}); }
+        static MoveFct make_mover(std::true_type) {
+            // std::cout << "make_mover " << typeid(T).name() << " moveable\n";
+            return [](T&& t){ return new T{std::move(t)}; };
+        }
+        static MoveFct make_mover(std::false_type) {
+            // std::cout << "make_mover " << typeid(T).name() << " not moveable\n";
+            return nullptr;
+        }
+
+        static CopyFct make_copier() { return make_copier(std::is_copy_constructible<T>{}); }
+        static CopyFct make_copier(std::true_type) {
+            // std::cout << "make_copier " << typeid(T).name() << " copyable\n";
+            return [](T const& t){ return new T{t}; };
+        }
+        static CopyFct make_copier(std::false_type) {
+            // std::cout << "make_copier " << typeid(T).name() << " not copyable\n";
+            return nullptr;
+        }
+
         item() = default;
-        explicit item(T* p) : ptr{p} {
-            std::cout << "new smartptr item " << typeid(T).name() << " " << p << '\n';
+        explicit item(T* p) : ptr{p}, data_mover{make_mover()}, data_copier{make_copier()} {
+            // std::cout << "new smartptr item " << typeid(T).name() << " " << p << '\n';
         }
 
         std::size_t count = 1;
         std::unique_ptr<T> ptr;
 
-        /*
-        ~item() {
-            // std::cout << "smart_ptr item dtor " << typeid(T).name()
-            //     << ' ' << ptr.get() << '\n';
-
-            T* p = ptr.release();
-            if (p) {
-                std::cout << "smart_ptr item being overwritten " << typeid(T).name()
-                    << ' ' << p << '\n';
-                p->~T();
-                std::fill(reinterpret_cast<char*>(p), reinterpret_cast<char*>(p)+sizeof(T), '\0');
-                delete reinterpret_cast<char*>(p);
-                std::cout << "smart_ptr item overwritten " << typeid(T).name()
-                    << ' ' << p << '\n';
-            }
-        }
-        */
+        MoveFct data_mover = nullptr;
+        CopyFct data_copier = nullptr;
     };
 
 public:
@@ -66,14 +76,20 @@ public:
     T* get() const { return i->ptr.get(); }
     T& operator*() const { return *(i->ptr); }
 
-    explicit operator bool() const { return static_cast<bool>(i->ptr); }
-
-    T* steal() {
-        assert(i);
-        T* p = i->ptr.release();
-        cleanup();
-        return p;
+    T* new_copied() const {
+        // TODO throw
+        assert(i->ptr);
+        assert(i->data_copier);
+        return i->data_copier(*i->ptr);
     }
+    T* new_moved() const {
+        // TODO throw
+        assert(i->ptr);
+        assert(i->data_mover);
+        return i->data_mover(std::move(*i->ptr));
+    }
+
+    explicit operator bool() const { return static_cast<bool>(i->ptr); }
 
     ~smart_ptr() {
         cleanup();

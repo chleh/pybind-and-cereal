@@ -33,6 +33,8 @@ struct Base
 
 struct Derived1 : Base
 {
+    Derived1() = default;
+
     std::string s;
     std::unique_ptr<Base> b;
     NoCopy nc;
@@ -40,7 +42,9 @@ struct Derived1 : Base
     Base& get_base() { return *this; }
     std::string what() override { return "der1"; };
 
-    ~Derived1() { std::cout << "~Derived1() s=" << s << '\n'; }
+    // Destructor prevents implicit move ctor
+    // Derived1(Derived1&&) = default;
+    // ~Derived1() { std::cout << "~Derived1() s=" << s << '\n'; }
 
     REFLECT_DERIVED(Derived1, Base, FIELDS(s, b, nc), METHODS(get_base))
 };
