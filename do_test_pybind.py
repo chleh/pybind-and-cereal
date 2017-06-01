@@ -29,8 +29,8 @@ print("d1.what()", d1.what())
 print("new: tmp")
 tmp = tp.Derived1()
 tmp.s = "tmp"
-d1.b_MOVE_IN = tmp
-# d1.b_COPY_IN = tmp  ## tmp is not copyable!
+d1.b__MOVE_IN = tmp
+# d1.b__COPY_IN = tmp  ## tmp is not copyable!
 
 print("tmp after move", tmp)
 print("tmp.s after move \"{}\"".format(tmp.s))

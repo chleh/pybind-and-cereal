@@ -123,6 +123,7 @@ private:
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::unique_ptr<UniqueT, UniqueD>>) const
     {
+        // TODO support assigning nullptr
         auto const& member_pointer = name_member.second;
         using Class = typename GetClass<MemberPtr>::type;
         // using Res   = typename ResultType<MemberPtr>::type;
@@ -150,7 +151,7 @@ private:
                     },
                     pybind11::is_method(this->c));
 
-            c.def_property((name_member.first + "_COPY_IN"s).c_str(), fget, fset);
+            c.def_property((name_member.first + "__COPY_IN"s).c_str(), fget, fset);
         }
         // if (std::is_move_constructible<UniqueT>::value)
         {
@@ -166,10 +167,12 @@ private:
                     },
                     pybind11::is_method(this->c));
 
-            c.def_property((name_member.first + "_MOVE_IN"s).c_str(), fget, fset);
+            c.def_property((name_member.first + "__MOVE_IN"s).c_str(), fget, fset);
         }
     }
 
+    // TODO support move-only types
+    // TODO return reference by default
     template <typename MemberPtr>
     void op_if_copyable(std::pair<const char*, MemberPtr> const& name_member, std::true_type) const
     {
