@@ -12,12 +12,6 @@ struct Type {
 };
 
 
-#define APPLY(MACRO, ...) \
-    MACRO(__VA_ARGS__)
-
-#define IGNORE_HEAD(HEAD, ...) \
-    __VA_ARGS__
-
 #define NOOP(...)
 // for debugging:
 // #define NOOP0(...) "no_op0"
