@@ -15,5 +15,6 @@
 [ ] check is_default_constructible
 [ ] guess some constructors, e.g. a constructor taking all the direct data members in
     the order defined by the reflection
+[ ] copy constructor, but not move ctor (because not supported by python)
 [ ] split tests
 
