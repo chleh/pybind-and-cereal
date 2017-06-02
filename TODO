@@ -1,10 +1,19 @@
 
-* const members
-* STL containers
-  * --> name mangling
-* steal from custom shared_ptr
-  * go back to custom unique_ptr, provide item copier/mover there
-  * maybe it's comparably reasonable to keep moving pointers around
-* overridden methods
-* static methods
+[x] const members (maybe not, because not supported by python)
+[ ] STL containers
+    * --> name mangling
+[v] steal from custom shared_ptr
+    * go back to custom unique_ptr, provide item copier/mover there
+      * implemented copier/mover in custom shared_ptr
+    * maybe it's comparably reasonable to keep moving pointers around
+      * no it's not. Better: copy/move in, then get new reference to C++ object
+        back, because this ties the lifetime of the owner to the lifetime of the
+        returned reference. This is now implemented.
+[ ] overridden methods (write test)
+[ ] static methods
+[ ] static_assert is_base_of
+[ ] check is_default_constructible
+[ ] guess some constructors, e.g. a constructor taking all the direct data members in
+    the order defined by the reflection
+[ ] split tests
 
