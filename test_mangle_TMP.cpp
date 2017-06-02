@@ -131,6 +131,18 @@ struct Name<T&&>
     static std::string name() { return Name<T>::name() + "&&"; }
 };
 
+template<typename T>
+struct Name<T[]>
+{
+    static std::string name() { return Name<T>::name() + "[]"; }
+};
+
+template<typename T, std::size_t N>
+struct Name<T[N]>
+{
+    static std::string name() { return Name<T>::name() + '[' + std::to_string(N) + ']'; }
+};
+
 
 
 template<typename A, typename B>
@@ -169,6 +181,8 @@ std::string mangle(std::string s)
     replace_str(s, '>', "_R");
     replace_str(s, '(', "_l");
     replace_str(s, ')', "_r");
+    replace_str(s, '[', "_m");
+    replace_str(s, ']', "_s");
     replace_str(s, '&', "_A");
     replace_str(s, '*', "_P");
     replace_str(s, ':', "_c");
@@ -212,5 +226,13 @@ int main()
     cout << Mangle<S2<5,3,2>>::name() << '\n';
     cout << Mangle<S2<5,3,2>>::mangled_name() << '\n';
     cout << typeid(Mangle<S2<5,3,2>>::type).name() << '\n';
+
+    cout << Mangle<double[]>::name() << '\n';
+    cout << Mangle<double[]>::mangled_name() << '\n';
+    cout << typeid(Mangle<double[]>::type).name() << '\n';
+
+    cout << Mangle<double[5]>::name() << '\n';
+    cout << Mangle<double[5]>::mangled_name() << '\n';
+    cout << typeid(Mangle<double[5]>::type).name() << '\n';
     return 0;
 }
