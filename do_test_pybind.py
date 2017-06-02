@@ -26,15 +26,29 @@ print("d1.nc.i", d1.nc.i)
 
 print("d1.what()", d1.what())
 
+### check that error messages are generated
+try:
+    print(d1.b__COPY_IN)
+except Exception as e:
+    print("ERROR", e)
+
+### check that error messages are generated
+try:
+    print(d1.b__MOVE_IN)
+except Exception as e:
+    print("ERROR", e)
+
 print("new: tmp")
 tmp = tp.Derived1()
-tmp.s = "tmp"
+tmp.s = "tmp"  # Note standard python strings are immutable. String assignment always copies
+
+### check move assignment of std::unique_ptr
 d1.b__MOVE_IN = tmp
 # d1.b__COPY_IN = tmp  ## tmp is not copyable!
 
 print("tmp after move", tmp)
 print("tmp.s after move \"{}\"".format(tmp.s))
-print("d1.b", d1.b)
+print("d1.b", d1.b, d1.b.s)
 
 print("del d1")
 del d1
@@ -81,3 +95,25 @@ if False:
     # tmp.s = "tmp 2nd"
 
     # d1.b = tmp
+
+
+### Testing move-only member
+d1 = tp.Derived1()
+
+nc = tp.NoCopy()
+nc.s = "hello!"
+print("nc.s \"{}\"".format(nc.s))
+
+print("d1.nc.s", d1.nc.s)
+
+print("move assign")
+d1.nc__MOVE_IN = nc
+
+print("d1.nc.s", d1.nc.s)
+print("nc.s \"{}\"".format(nc.s))
+
+try:
+    print("d1.nc", d1.nc__MOVE_IN)
+except Exception as e:
+    print("ERROR", e)
+print("d1.nc", d1.nc)

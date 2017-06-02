@@ -65,6 +65,10 @@ template <class Class, class... Cs>
 decltype(auto)
 add_ctor(pybind11::class_<Class, Cs...>& c)
 {
+    // TODO add copy ctor
+    // move ctor not supported
+    // TODO add aggregate ctor if type is aggegate (issue warning if wrongly
+    // inferred) --> CPPCON talk by Yandex guy
     return add_ctor_impl(c, std::is_abstract<Class>{});
 }
 
@@ -100,6 +104,25 @@ struct GetClass<Res Class::*>
     using type = Class;
 };
 
+template<typename T>
+struct TypeFeatures
+{
+    // static constexpr bool is_default_constructible
+    //     = std::is_default_constructible<T>::value;
+
+    static constexpr bool is_copy_assignable
+        = std::is_copy_assignable<T>::value;
+
+    static constexpr bool is_move_assignable
+        = std::is_move_assignable<T>::value;
+
+    // TODO is_const (Maybe not needed because not supported by python
+
+    using features = std::integer_sequence<bool,
+          // is_default_constructible,
+          is_copy_assignable, is_move_assignable>;
+};
+
 template<typename PybindClass>
 struct Visitor
 {
@@ -109,17 +132,19 @@ struct Visitor
     template <typename MemberPtr>
     void operator()(std::pair<const char*, MemberPtr> const& name_member) const
     {
-        op_impl(name_member, Type<typename ResultType<decltype(name_member.second)>::type>{});
+        using Res = typename ResultType<MemberPtr>::type;
+        op_impl(name_member, Type<Res>{});
     }
 
 private:
     template <typename MemberPtr, typename Res>
-    void op_impl(std::pair<const char*, MemberPtr> const& name_member, Type<Res>) const
+    void op_impl(std::pair<const char*, MemberPtr> const& name_member,
+            Type<Res> t) const
     {
-        op_if_copyable(name_member, std::is_copy_constructible<Res>{});
+        op_impl(name_member, t, typename TypeFeatures<Res>::features{});
     }
 
-    template <typename MemberPtr, typename UniqueT, typename UniqueD>
+    template <typename MemberPtr, typename UniqueT, typename UniqueD, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::unique_ptr<UniqueT, UniqueD>>) const
     {
@@ -135,14 +160,20 @@ private:
         c.def_property_readonly(name_member.first,
                 fget, pybind11::return_value_policy::reference_internal);
 
-        using namespace std::literals::string_literals;
+        std::string const name = name_member.first;
         // TODO reenable if also examining if UniqueT is final
         // if (std::is_copy_constructible<UniqueT>::value)
         {
+            auto const py_name = name + "__COPY_IN";
             pybind11::cpp_function fget(
-                    [](Class& c) -> UniqueT* {
-                        // TODO error message
-                        throw pybind11::key_error{};
+                    [name, py_name](Class& c) -> UniqueT* {
+                        throw pybind11::key_error{"The member \"" + py_name + "\" is not intended for read access of "
+                            "the data member \"" + name + "\".\n"
+                            "Rather, \"" + py_name + "\" shall only be used for copy-constructing "
+                            "the C++ object held by the member \"" + name + "\" (\"" + name + "\" being a std::unique_ptr), i.e., in "
+                            "Python code like:\n"
+                            "    obj." + py_name + " = rhs\n"
+                            "For read access to \"" + name + "\" please use the member \"" + name + "\" instead."};
                     },
                     pybind11::is_method(this->c));
             pybind11::cpp_function fset(
@@ -151,14 +182,20 @@ private:
                     },
                     pybind11::is_method(this->c));
 
-            c.def_property((name_member.first + "__COPY_IN"s).c_str(), fget, fset);
+            c.def_property(py_name.c_str(), fget, fset);
         }
         // if (std::is_move_constructible<UniqueT>::value)
         {
+            auto const py_name = name + "__MOVE_IN";
             pybind11::cpp_function fget(
-                    [](Class& c) -> UniqueT* {
-                        // TODO error message
-                        throw pybind11::key_error{};
+                    [name, py_name](Class& c) -> UniqueT* {
+                        throw pybind11::key_error{"The member \"" + py_name + "\" is not intended for read access of "
+                            "the data member \"" + name + "\".\n"
+                            "Rather, \"" + py_name + "\" shall only be used for move-constructing "
+                            "the C++ object held by the member \"" + name + "\" (\"" + name + "\" being a std::unique_ptr), i.e., in "
+                            "Python code like:\n"
+                            "    obj." + py_name + " = rhs\n"
+                            "For read access to \"" + name + "\" please use the member \"" + name + "\" instead."};
                     },
                     pybind11::is_method(this->c));
             pybind11::cpp_function fset(
@@ -167,25 +204,11 @@ private:
                     },
                     pybind11::is_method(this->c));
 
-            c.def_property((name_member.first + "__MOVE_IN"s).c_str(), fget, fset);
+            c.def_property(py_name.c_str(), fget, fset);
         }
     }
 
-    // TODO support move-only types
-    // TODO return reference by default
-    template <typename MemberPtr>
-    void op_if_copyable(std::pair<const char*, MemberPtr> const& name_member, std::true_type) const
-    {
-        c.def_readwrite(name_member.first, name_member.second);
-    }
-
-    template <typename MemberPtr>
-    void op_if_copyable(std::pair<const char*, MemberPtr> const& name_member, std::false_type) const
-    {
-        c.def_readonly(name_member.first, name_member.second);
-    }
-
-    template <typename MemberPtr, typename VecElem, typename VecAlloc>
+    template <typename MemberPtr, typename VecElem, typename VecAlloc, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::vector<VecElem, VecAlloc>>) const
     {
@@ -195,6 +218,51 @@ private:
                 pybind11::buffer_protocol());
         c.def_readwrite(name_member.first, name_member.second);
     }
+
+
+    // return reference by default --> is already pybind default for getters (according to docs)
+    template <typename MemberPtr, typename Res, bool... Feats>
+    void op_impl(std::pair<const char*, MemberPtr> const& name_member,
+            Type<Res>, std::integer_sequence<bool, true /*copy*/, Feats...>
+            ) const
+    {
+        // TODO use pattern like move-only and add specialization for shared_ptr
+        // TODO what about copyable and movable types?
+        c.def_readwrite(name_member.first, name_member.second);
+    }
+
+    template <typename MemberPtr, typename Res, bool... Feats>
+    void op_impl(std::pair<const char*, MemberPtr> const& name_member,
+            Type<Res>, std::integer_sequence<bool, false /*copy*/, true /*move*/, Feats...>
+            ) const
+    {
+        c.def_readonly(name_member.first, name_member.second);
+
+        using Class = typename GetClass<MemberPtr>::type;
+        auto const& member_pointer = name_member.second;
+        std::string const name = name_member.first;
+        auto const py_name = name + "__MOVE_IN";
+        pybind11::cpp_function fget(
+                [name, py_name](Class& c) -> Res* {
+                    throw pybind11::key_error{"The member \"" + py_name + "\" is not intended for read access of "
+                        "the data member \"" + name + "\".\n"
+                        "Rather, \"" + py_name + "\" shall only be used for move-assigning the C++ data, i.e., in "
+                        "Python code like:\n"
+                        "    obj." + py_name + " = rhs\n"
+                        "For read access to \"" + name + "\" please use the member \"" + name + "\" instead."};
+                },
+                pybind11::is_method(this->c));
+        pybind11::cpp_function fset(
+                [member_pointer](Class& c, Res& value) {
+                    c.*member_pointer = std::move(value);
+                },
+                pybind11::is_method(this->c));
+        c.def_property(py_name.c_str(), fget, fset);
+    }
+
+    // TODO:
+    //  * pointer members (Maybe not, because conflicts with cereal)
+    //  * refactor to add_get, add_copy_assign, add_move_assign
 };
 
 template<typename Class, typename... Args>

@@ -13,8 +13,9 @@ struct NoCopy
     NoCopy& operator=(NoCopy const&) = delete;
 
     int i = 10;
+    std::string s;
 
-    REFLECT(NoCopy, FIELDS(i), METHODS())
+    REFLECT(NoCopy, FIELDS(i, s), METHODS())
 };
 
 struct Base
