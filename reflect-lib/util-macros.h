@@ -15,17 +15,16 @@
 
 
 
-#define EXPAND(SEQ) EXPAND_IMPL SEQ
 #define EXPAND_IMPL(...) __VA_ARGS__
+#define EXPAND(SEQ) EXPAND_IMPL SEQ
 
 
-#define APPLY(MACRO, ...) \
-    MACRO(__VA_ARGS__)
+#define APPLY(MACRO, ...) MACRO(__VA_ARGS__)
 
-#define IGNORE_HEAD(HEAD, ...) \
-    __VA_ARGS__
+#define GET_HEAD(HEAD, ...) HEAD
 
-#define IGNORE_HEAD2(HEAD1, HEAD2, ...) \
-    __VA_ARGS__
+#define IGNORE_HEAD(HEAD, ...) __VA_ARGS__
+
+#define IGNORE_HEAD2(HEAD1, HEAD2, ...) __VA_ARGS__
 
 

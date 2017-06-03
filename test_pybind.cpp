@@ -8,5 +8,8 @@ PYBIND11_MODULE(test_pybind, m) {
     bind_with_pybind<Derived1>(m);
     bind_with_pybind<Derived2>(m);
     bind_with_pybind<NoCopy>(m);
+
+    bind_with_pybind<Derived3<int, int>>(m);
+    bind_with_pybind<Derived3<int, double>>(m);
 }
 

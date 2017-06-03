@@ -17,8 +17,16 @@
 #include "reflect-macros.h"
 
 #define REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION(CLASS, BASE) \
-    CEREAL_REGISTER_TYPE(CLASS); \
-    CEREAL_REGISTER_POLYMORPHIC_RELATION(BASE, CLASS)
+    APPLY(CEREAL_REGISTER_TYPE, EXPAND(CLASS)); \
+    OVERRIDE_CEREAL_REGISTER_POLYMORPHIC_RELATION(BASE, CLASS)
+
+#define OVERRIDE_CEREAL_REGISTER_POLYMORPHIC_RELATION(Base, Derived)                     \
+  namespace cereal {                                                            \
+  namespace detail {                                                            \
+  template <>                                                                   \
+  struct PolymorphicRelation<EXPAND(Base), EXPAND(Derived)>                                     \
+  { static void bind() { RegisterPolymorphicCaster<EXPAND(Base), EXPAND(Derived)>::bind(); } }; \
+  } } /* end namespaces */
 
 template <class Archive, class Object>
 void save(Archive & archive, Object const& obj)

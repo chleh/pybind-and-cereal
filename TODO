@@ -17,4 +17,5 @@
     the order defined by the reflection
 [ ] copy constructor, but not move ctor (because not supported by python)
 [ ] split tests
+[ ] derived class member shadowing base class member
 

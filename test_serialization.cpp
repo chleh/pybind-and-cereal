@@ -24,18 +24,35 @@ int main()
 
         std::unique_ptr<Base> b = std::move(d1);
 
+        auto d3 = std::make_unique<Derived3<int, double>>();
+        d3->i = 9;
+        d3->t = 42;
+        d3->u = 2.5;
+
         std::ofstream os("archive.xml");
         cereal::XMLOutputArchive archive(os);
 
         archive(b);
+
+        // Note: saving as derived type and reading as base type does not work!
+        archive(std::unique_ptr<Base>(std::move(d3)));
     }
 
     {
         std::ifstream is("archive.xml");
         cereal::XMLInputArchive archive(is);
 
+        std::cout << "Loading...\n";
+
+        std::cout << "... first...\n";
         std::unique_ptr<Base> b;
         archive(b);
+
+        std::cout << "... second...\n";
+        std::unique_ptr<Base> b3;
+        archive(b3);
+
+        std::cout << "End Loading.\n";
 
         std::cout << typeid(*b).name() << '\n';
 
@@ -46,6 +63,10 @@ int main()
         assert(d1->i == 10);
         assert(d1->d == 3.14);
         assert(d1->s == "hello");
+
+        Derived3<int, double>* d3;
+        d3 = dynamic_cast<Derived3<int, double>*>(b3.get());
+        assert(d3 != nullptr);
     }
 
     return 0;

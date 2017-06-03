@@ -17,9 +17,26 @@
 				</b>
 				<nc>
 					<i>10</i>
+					<s></s>
 				</nc>
 			</data>
 		</ptr_wrapper>
 	</value0>
+	<value1>
+		<polymorphic_id>2147483650</polymorphic_id>
+		<polymorphic_name>Derived3&lt;int, double&gt;</polymorphic_name>
+		<ptr_wrapper>
+			<valid>1</valid>
+			<data>
+				<value0>
+					<i>9</i>
+					<d>0</d>
+					<v size="dynamic"/>
+				</value0>
+				<t>42</t>
+				<u>2.5</u>
+			</data>
+		</ptr_wrapper>
+	</value1>
 </cereal>
 
