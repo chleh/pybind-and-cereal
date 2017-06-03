@@ -40,6 +40,8 @@ struct Type {
 #define GNP2M(CLASS, ...) \
     APPLY(IGNORE_HEAD, 0 FOR_EACH(MAKE_PAIR_NAME_POINTER_TO_MEMBER, CLASS, __VA_ARGS__))
 
+// TODO does omitting the class template argument list really work in all
+// situations?
 #define MAKE_PAIR_NAME_POINTER_TO_MEMBER(CLASS, MEMBER) \
     , std::make_pair(#MEMBER, MAKE_POINTER_TO_MEMBER(APPLY(GET_HEAD, EXPAND(CLASS)), MEMBER))
 
