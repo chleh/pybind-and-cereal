@@ -34,8 +34,6 @@ struct Base
 
 struct Derived1 : Base
 {
-    Derived1() = default;
-
     std::string s;
     std::unique_ptr<Base> b;
     NoCopy nc;
@@ -45,6 +43,7 @@ struct Derived1 : Base
 
     // Destructor prevents implicit move ctor
     // Derived1(Derived1&&) = default;
+    // Derived1() = default;
     // ~Derived1() { std::cout << "~Derived1() s=" << s << '\n'; }
 
     REFLECT_DERIVED((Derived1), Base, FIELDS(s, b, nc), METHODS(get_base))
@@ -62,8 +61,6 @@ struct Derived2 : Base
 template<typename T, typename U>
 struct Derived3 : Base
 {
-    Derived3() = default; // somehow necessary -- but why?
-
     T t;
     U u;
 
