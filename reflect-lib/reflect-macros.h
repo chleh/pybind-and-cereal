@@ -58,10 +58,8 @@ struct Type {
 #define METHODS(...) \
     METHODS_TAG, (__VA_ARGS__ )
 
-#define TPL_CLASS(CLASS, ...) (CLASS, __VA_ARGS__)
-
 #define REFLECT_IMPL(CLASS, FIELDS_TAG_, FIELDS, METHODS_TAG_, METHODS) \
-    REFLECT_DERIVED_IMPL(CLASS, void, FIELDS_TAG_, FIELDS, METHODS_TAG_, METHODS) \
+    REFLECT_DERIVED_IMPL(CLASS, (void), FIELDS_TAG_, FIELDS, METHODS_TAG_, METHODS) \
 
 #define REFLECT(...) \
     REFLECT_IMPL(__VA_ARGS__)
@@ -73,7 +71,7 @@ struct Type {
     static_assert(FIELDS_TAG_ == FIELDS_TAG, "Error wrong fields tag"); \
     static_assert(METHODS_TAG_ == METHODS_TAG, "Error wrong methods tag"); \
     struct Meta { \
-        using base = BASE; /* TODO templated base classes */ \
+        using base = EXPAND(BASE); \
         /* static_assert(std::is_base_of<base, EXPAND(CLASS)>::value, */ \
                 /* "Error: base is not base class!"); */ \
         static decltype(auto) mangled_name() { return typeid(EXPAND(CLASS)).name(); } \

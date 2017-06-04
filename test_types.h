@@ -46,7 +46,7 @@ struct Derived1 : Base
     // Derived1() = default;
     // ~Derived1() { std::cout << "~Derived1() s=" << s << '\n'; }
 
-    REFLECT_DERIVED((Derived1), Base, FIELDS(s, b, nc), METHODS(get_base))
+    REFLECT_DERIVED((Derived1), (Base), FIELDS(s, b, nc), METHODS(get_base))
 };
 
 struct Derived2 : Base
@@ -55,7 +55,7 @@ struct Derived2 : Base
 
     std::string what() override { return "der2"; };
 
-    REFLECT_DERIVED((Derived2), Base, FIELDS(b), METHODS())
+    REFLECT_DERIVED((Derived2), (Base), FIELDS(b), METHODS())
 };
 
 template<typename T, typename U>
@@ -66,6 +66,6 @@ struct Derived3 : Base
 
     std::string what() override { return "der3"; };
 
-    REFLECT_DERIVED(TPL_CLASS(Derived3<T, U>), Base, FIELDS(t, u), METHODS())
+    REFLECT_DERIVED((Derived3<T, U>), (Base), FIELDS(t, u), METHODS())
 };
 
