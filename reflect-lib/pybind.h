@@ -215,12 +215,12 @@ private:
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::vector<VecElem, VecAlloc>>) const
     {
-        auto const vec_type_name = remangle(typeid(std::vector<VecElem, VecAlloc>).name());
+        auto const vec_type_name = demangle(typeid(std::vector<VecElem, VecAlloc>).name());
         // Check if the auxiliary std::vector binding already exists.
         if (!all_types.contains(vec_type_name.c_str()))
         {
             auto vec_c = pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
-                    m, vec_type_name, pybind11::buffer_protocol());
+                    m, mangle(vec_type_name), pybind11::buffer_protocol());
             all_types[vec_type_name.c_str()] = vec_c;
         }
         c.def_readwrite(name_member.first, name_member.second);
@@ -280,18 +280,26 @@ Visitor<Class> makeVisitor(Class& c, Args&&... args) {
 template<typename Class>
 void bind_with_pybind(pybind11::module& module)
 {
-    auto c = bind_class<Class>(module, std::is_same<typename Class::Meta::base, void>{});
-    add_ctor(c);
-
     if (!pybind11::hasattr(module, "all_types")) {
-        using namespace pybind11::literals;
         module.add_object("all_types", pybind11::dict{});
     }
-
     auto all_types = pybind11::getattr(module, "all_types").cast<pybind11::dict>();
 
+    // create class
+    auto c = bind_class<Class>(module, std::is_same<typename Class::Meta::base, void>{});
+
+    // register in type list
+    auto const name = demangle(Class::Meta::mangled_name());
+    all_types[name.c_str()] = c;
+
+    // add constructor
+    add_ctor(c);
+
+    // add data fields
     auto v = makeVisitor(c, module, all_types);
     visit(v, Class::Meta::fields());
+
+    // add methods
     visit([&c](auto const& name_member) {
             c.def(name_member.first, name_member.second);
             }, Class::Meta::methods());

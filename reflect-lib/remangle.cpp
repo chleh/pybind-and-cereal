@@ -5,7 +5,13 @@
 
 #include "remangle.h"
 
-std::string remangle(const char* mangled_name)
+std::string demangle(const char* mangled_name)
+{
+    // TODO does the returned string have to be normalized?
+    return boost::core::demangle(mangled_name);
+}
+
+std::string mangle(std::string s)
 {
     using namespace std::string_literals;
 
@@ -21,14 +27,12 @@ std::string remangle(const char* mangled_name)
         }
     };
 
-    auto s = boost::core::demangle(mangled_name);
-
     replace_str1(s, '_', "__");
 
     replace_str2(s, "&&", "_A"); // ampersand
     replace_str2(s, "::", "_S"); // scope
     replace_str2(s, ", ", "_c"); // comma
-    // TODO improve
+    // TODO check further cases, like *const
     replace_str2(s, " const", "_C"); // const
 
     auto const non_word = "&:, <>()[]*"s;

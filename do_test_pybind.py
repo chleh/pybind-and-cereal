@@ -15,7 +15,7 @@ print("d1.v", d1.v)
 
 # d1.v = tp.std__vector__f([1,2,3])
 # print("d1.v", d1.v)
-d1.v = tp.std_Svector_Lfloat_cstd_Sallocator_Lfloat_R_R([1,2,3])
+d1.v = tp.all_types["std::vector<float, std::allocator<float> >"]([1,2,3])
 print("d1.v", d1.v)
 
 print("d1.say_hello()", d1.say_hello())
