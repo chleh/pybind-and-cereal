@@ -2,6 +2,9 @@
 
 import test_pybind as tp
 
+print(dir(tp))
+print("all_types", tp.all_types)
+
 d1 = tp.Derived1()
 d1.s = "d1"
 
@@ -12,6 +15,8 @@ print("d1.v", d1.v)
 
 # d1.v = tp.std__vector__f([1,2,3])
 # print("d1.v", d1.v)
+d1.v = tp.std_Svector_Lfloat_cstd_Sallocator_Lfloat_R_R([1,2,3])
+print("d1.v", d1.v)
 
 print("d1.say_hello()", d1.say_hello())
 
@@ -118,4 +123,3 @@ except Exception as e:
     print("ERROR", e)
 print("d1.nc", d1.nc)
 
-print(dir(tp))

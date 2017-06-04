@@ -63,9 +63,11 @@ struct Derived3 : Base
 {
     T t;
     U u;
+    std::vector<float> v;
+    std::vector<float> w;
 
     std::string what() override { return "der3"; };
 
-    REFLECT_DERIVED((Derived3<T, U>), (Base), FIELDS(t, u), METHODS())
+    REFLECT_DERIVED((Derived3<T, U>), (Base), FIELDS(t, u, v, w), METHODS())
 };
 

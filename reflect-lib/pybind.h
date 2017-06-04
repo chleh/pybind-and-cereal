@@ -129,6 +129,7 @@ struct Visitor
 {
     PybindClass& c;
     pybind11::module& m;
+    pybind11::dict& all_types;
 
     template <typename MemberPtr>
     void operator()(std::pair<const char*, MemberPtr> const& name_member) const
@@ -213,10 +214,14 @@ private:
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::vector<VecElem, VecAlloc>>) const
     {
-        // TODO full name mangling, also mangle allocator
-        pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
-                m, remangle(typeid(std::vector<VecElem, VecAlloc>).name()).c_str(),
-                pybind11::buffer_protocol());
+        auto const vec_type_name = remangle(typeid(std::vector<VecElem, VecAlloc>).name());
+        // Check if the auxiliary std::vector binding already exists.
+        if (!all_types.contains(vec_type_name.c_str()))
+        {
+            auto vec_c = pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
+                    m, vec_type_name, pybind11::buffer_protocol());
+            all_types[vec_type_name.c_str()] = vec_c;
+        }
         c.def_readwrite(name_member.first, name_member.second);
     }
 
@@ -277,10 +282,14 @@ void bind_with_pybind(pybind11::module& module)
     auto c = bind_class<Class>(module, std::is_same<typename Class::Meta::base, void>{});
     add_ctor(c);
 
-    // visit([&c](auto const& name_member) {
-    //         c.def_readwrite(name_member.first, name_member.second);
-    //         }, Class::Meta::fields());
-    auto v = makeVisitor(c, module);
+    if (!pybind11::hasattr(module, "all_types")) {
+        using namespace pybind11::literals;
+        module.add_object("all_types", pybind11::dict{});
+    }
+
+    auto all_types = pybind11::getattr(module, "all_types").cast<pybind11::dict>();
+
+    auto v = makeVisitor(c, module, all_types);
     visit(v, Class::Meta::fields());
     visit([&c](auto const& name_member) {
             c.def(name_member.first, name_member.second);
