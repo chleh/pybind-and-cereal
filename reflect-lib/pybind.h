@@ -64,30 +64,44 @@ bind_class(pybind11::module& module, std::true_type)
            smart_ptr<Class>>(module, remangle(Class::Meta::mangled_name()).c_str());
 }
 
-template <class Class, class... Cs>
-decltype(auto)
-add_ctor_impl(pybind11::class_<Class, Cs...>& c, std::true_type)
-{
-    return c;
-}
 
 template <class Class, class... Cs>
 decltype(auto)
-add_ctor_impl(pybind11::class_<Class, Cs...>& c, std::false_type)
+add_ctor_if_default_constructible(pybind11::class_<Class, Cs...>& c, std::true_type)
 {
     return c.def(pybind11::init());
 }
 
 template <class Class, class... Cs>
 decltype(auto)
+add_ctor_if_default_constructible(pybind11::class_<Class, Cs...>& c, std::false_type)
+{
+    return c;
+}
+
+template <class Class, class... Cs>
+decltype(auto)
+add_ctor_if_copy_constructible(pybind11::class_<Class, Cs...>& c, std::true_type)
+{
+    return c.def(pybind11::init<Class const&>());
+}
+
+template <class Class, class... Cs>
+decltype(auto)
+add_ctor_if_copy_constructible(pybind11::class_<Class, Cs...>& c, std::false_type)
+{
+    return c;
+}
+
+template <class Class, class... Cs>
+decltype(auto)
 add_ctor(pybind11::class_<Class, Cs...>& c)
 {
-    // TODO add copy ctor
-    // move ctor not supported
-    // TODO add aggregate ctor if type is aggegate (issue warning if wrongly
-    // inferred) --> CPPCON talk by Yandex guy
-    return add_ctor_impl(c, std::is_abstract<Class>{});
+    // return c;
+    add_ctor_if_default_constructible(c, std::is_default_constructible<Class>{});
+    return add_ctor_if_copy_constructible(c, std::is_copy_constructible<Class>{});
 }
+
 
 template<typename T>
 struct ResultType;

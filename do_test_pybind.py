@@ -108,11 +108,29 @@ d1 = tp.Derived1()
 nc = tp.NoCopy()
 nc.s = "hello!"
 print("nc.s \"{}\"".format(nc.s))
-
 print("d1.nc.s", d1.nc.s)
 
 print("move assign")
 d1.nc__MOVE_IN = nc
+
+### try copying non-copyable type
+try:
+    thrown = False
+    tp.NoCopy(nc)
+except TypeError:
+    thrown = True
+assert thrown
+try:
+    thrown = False
+    tp.Derived1(d1)
+except TypeError:
+    thrown = True
+assert thrown
+
+### copy copyable type
+d2 = tp.Derived2()
+d2_2 = tp.Derived2(d2)
+
 
 print("d1.nc.s", d1.nc.s)
 print("nc.s \"{}\"".format(nc.s))
