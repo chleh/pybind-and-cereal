@@ -1,0 +1,76 @@
+#include <algorithm>
+#include <cassert>
+
+#include <boost/core/demangle.hpp>
+
+#include "remangle.h"
+
+std::string remangle(const char* mangled_name)
+{
+    using namespace std::string_literals;
+
+    auto replace_str1 = [](std::string& s, char const c, std::string const& repl) {
+        for (auto pos = s.find(c); pos != s.npos; pos = s.find(c, pos + repl.size())) {
+            s.replace(pos, 1, repl);
+        }
+    };
+
+    auto replace_str2 = [](std::string& s, std::string const& search_for, std::string const& repl) {
+        for (auto pos = s.find(search_for); pos != s.npos; pos = s.find(search_for, pos + repl.size())) {
+            s.replace(pos, search_for.size(), repl);
+        }
+    };
+
+    auto s = boost::core::demangle(mangled_name);
+
+    replace_str1(s, '_', "__");
+
+    replace_str2(s, "&&", "_A"); // ampersand
+    replace_str2(s, "::", "_S"); // scope
+    replace_str2(s, ", ", "_c"); // comma
+    // TODO improve
+    replace_str2(s, " const", "_C"); // const
+
+    auto const non_word = "&:, <>()[]*"s;
+
+    // remove unneeded spaces
+    for (auto it = std::find(s.begin(), s.end(), ' ');
+            it != s.end();
+            it = std::find(it, s.end(), ' '))
+    {
+        if (it == s.begin() || it == s.end() - 1) {
+            s.erase(it);
+            continue;
+        }
+        if (non_word.find(it[-1]) != non_word.npos
+                || non_word.find(it[+1]) != non_word.npos)
+        {
+            // previous or next character is a non-word character
+            s.erase(it);
+            continue;
+        }
+
+        // TODO Can that happen?
+        // space not erased
+        ++it;
+    }
+
+    replace_str1(s, ' ', "_s"); // space
+    replace_str1(s, ',', "_c"); // comma
+
+    replace_str1(s, '<', "_L"); // left
+    replace_str1(s, '>', "_R"); // right
+
+    replace_str1(s, '(', "_l"); // left
+    replace_str1(s, ')', "_r"); // right
+
+    replace_str1(s, '[', "_k"); // left  l -> k
+    replace_str1(s, ']', "_q"); // right r -> q
+
+    replace_str1(s, '&', "_a"); // ampersand
+    replace_str1(s, '*', "_p"); // pointer
+
+    assert(s.find_first_of(non_word) == s.npos);
+    return s;
+}
+
