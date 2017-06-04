@@ -66,6 +66,6 @@ struct Derived3 : Base
 
     std::string what() override { return "der3"; };
 
-    REFLECT_DERIVED(TPL_CLASS(Derived3, T, U), Base, FIELDS(t, u), METHODS())
+    REFLECT_DERIVED(TPL_CLASS(Derived3<T, U>), Base, FIELDS(t, u), METHODS())
 };
 

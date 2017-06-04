@@ -8,6 +8,7 @@
 #include <pybind11/stl_bind.h>
 
 #include "reflect-macros.h"
+#include "remangle.h"
 #include "smart_ptr.h"
 
 
@@ -49,7 +50,7 @@ bind_class(pybind11::module& module, std::false_type)
     return pybind11::class_<Class,
            typename Class::Meta::base,
            smart_ptr<Class>
-               >(module, Class::Meta::name());
+               >(module, remangle(Class::Meta::name()).c_str());
 }
 
 // not derived class
@@ -58,7 +59,7 @@ decltype(auto)
 bind_class(pybind11::module& module, std::true_type)
 {
     return pybind11::class_<Class,
-           smart_ptr<Class>>(module, Class::Meta::name());
+           smart_ptr<Class>>(module, remangle(Class::Meta::name()).c_str());
 }
 
 template <class Class, class... Cs>
@@ -214,7 +215,7 @@ private:
     {
         // TODO full name mangling, also mangle allocator
         pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
-                m, std::string{"std__vector__"} + typeid(VecElem).name(),
+                m, remangle(typeid(std::vector<VecElem, VecAlloc>).name()).c_str(),
                 pybind11::buffer_protocol());
         c.def_readwrite(name_member.first, name_member.second);
     }

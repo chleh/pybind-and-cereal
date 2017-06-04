@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tuple>
+#include <typeinfo>
 #include <type_traits>
 #include <utility>
 
@@ -43,7 +44,7 @@ struct Type {
 // TODO does omitting the class template argument list really work in all
 // situations?
 #define MAKE_PAIR_NAME_POINTER_TO_MEMBER(CLASS, MEMBER) \
-    , std::make_pair(#MEMBER, MAKE_POINTER_TO_MEMBER(APPLY(GET_HEAD, EXPAND(CLASS)), MEMBER))
+    , std::make_pair(#MEMBER, MAKE_POINTER_TO_MEMBER(EXPAND(CLASS), MEMBER))
 
 #define MAKE_POINTER_TO_MEMBER(CLASS, MEMBER) \
     &CLASS::MEMBER
@@ -68,16 +69,14 @@ struct Type {
 #define REFLECT_DERIVED(...) \
     REFLECT_DERIVED_IMPL(__VA_ARGS__)
 
-#define GET_CLASS_NAME(CLASS_NAME, ...) #CLASS_NAME
-
 #define REFLECT_DERIVED_IMPL(CLASS, BASE, FIELDS_TAG_, FIELDS, METHODS_TAG_, METHODS) \
     static_assert(FIELDS_TAG_ == FIELDS_TAG, "Error wrong fields tag"); \
     static_assert(METHODS_TAG_ == METHODS_TAG, "Error wrong methods tag"); \
     struct Meta { \
-        using base = BASE; \
+        using base = BASE; /* TODO templated base classes */ \
         /* static_assert(std::is_base_of<base, EXPAND(CLASS)>::value, */ \
                 /* "Error: base is not base class!"); */ \
-        static constexpr decltype(auto) name() { return APPLY(GET_CLASS_NAME, EXPAND(CLASS)); } \
+        static decltype(auto) name() { return typeid(EXPAND(CLASS)).name(); } \
         static constexpr decltype(auto) fields() \
         { \
             return std::make_tuple(GET_NAMES_POINTERS_TO_MEMBERS(CLASS, FIELDS)); \

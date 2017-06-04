@@ -10,8 +10,8 @@ print("d1.i", d1.i)
 d1.v.append(1.0)
 print("d1.v", d1.v)
 
-d1.v = tp.std__vector__f([1,2,3])
-print("d1.v", d1.v)
+# d1.v = tp.std__vector__f([1,2,3])
+# print("d1.v", d1.v)
 
 print("d1.say_hello()", d1.say_hello())
 
@@ -117,3 +117,5 @@ try:
 except Exception as e:
     print("ERROR", e)
 print("d1.nc", d1.nc)
+
+print(dir(tp))
