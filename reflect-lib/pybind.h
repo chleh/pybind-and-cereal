@@ -210,6 +210,7 @@ private:
         }
     }
 
+    // TODO: std::map, std::set, std::list, std::...
     template <typename MemberPtr, typename VecElem, typename VecAlloc, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::vector<VecElem, VecAlloc>>) const

@@ -20,4 +20,7 @@
 [ ] derived class member shadowing base class member
 [v] http://www.boost.org/doc/libs/master/libs/core/doc/html/core/demangle.html
 [ ] multiple inheritance
+[ ] refactoring:
+    [ ] namespaces
+    [ ] split tests
 
