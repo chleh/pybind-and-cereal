@@ -27,6 +27,7 @@
     [ ] rename macros
     [ ] more static assertions, e.g. is_base_of
     [ ] smart_ptr<T> --> std::shared_ptr<Item<T>>
+    [ ] clean up includes
 [ ] function overloads (e.g., for assigning nullptr to unique_ptr)
 [ ] submodules
 [ ] test inheritance in python
