@@ -2,6 +2,8 @@
 #include <iostream>
 #include <typeinfo>
 
+#include <boost/core/demangle.hpp>
+
 using namespace std;
 
 template<typename A>
@@ -218,6 +220,8 @@ int main()
     cout << Mangle<some____struct<decltype(&S<int>::g), double>>::name() << '\n';
     cout << Mangle<some____struct<decltype(&S<int>::g), double>>::mangled_name() << '\n';
     cout << typeid(Mangle<some____struct<decltype(&S<int>::g), double>>::type).name() << '\n';
+    cout << "boost: " << boost::core::demangle(
+            typeid(Mangle<some____struct<decltype(&S<int>::g), double>>::type).name()) << '\n';
 
     cout << Mangle<decltype(h)>::name() << '\n';
     cout << Mangle<decltype(h)>::mangled_name() << '\n';
