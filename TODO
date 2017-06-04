@@ -1,6 +1,6 @@
 
 [x] const members (maybe not, because not supported by python)
-[ ] STL containers
+[ ] Python bindings for STL containers
     [v] --> name mangling
 [v] steal from custom shared_ptr
     * go back to custom unique_ptr, provide item copier/mover there
@@ -12,10 +12,10 @@
 [ ] overridden methods (write test)
 [ ] static methods
 [ ] static_assert is_base_of
-[ ] check is_default_constructible
+[v] check is_default_constructible
 [ ] guess some constructors, e.g. a constructor taking all the direct data members in
     the order defined by the reflection
-[ ] copy constructor, but not move ctor (because not supported by python)
+[v] copy constructor, but not move ctor (because not supported by python)
 [ ] split tests
 [ ] derived class member shadowing base class member
 [v] http://www.boost.org/doc/libs/master/libs/core/doc/html/core/demangle.html
@@ -23,4 +23,12 @@
 [ ] refactoring:
     [ ] namespaces
     [ ] split tests
+    [ ] more tests (pybind and serialization)
+    [ ] rename macros
+    [ ] more static assertions, e.g. is_base_of
+    [ ] smart_ptr<T> --> std::shared_ptr<Item<T>>
+[ ] function overloads (e.g., for assigning nullptr to unique_ptr)
+[ ] submodules
+[ ] test inheritance in python
+[ ] compilation speed
 

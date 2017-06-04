@@ -97,7 +97,6 @@ template <class Class, class... Cs>
 decltype(auto)
 add_ctor(pybind11::class_<Class, Cs...>& c)
 {
-    // return c;
     add_ctor_if_default_constructible(c, std::is_default_constructible<Class>{});
     return add_ctor_if_copy_constructible(c, std::is_copy_constructible<Class>{});
 }
@@ -124,19 +123,13 @@ struct GetClass<Res Class::*>
 template<typename T>
 struct TypeFeatures
 {
-    // static constexpr bool is_default_constructible
-    //     = std::is_default_constructible<T>::value;
-
     static constexpr bool is_copy_assignable
         = std::is_copy_assignable<T>::value;
 
     static constexpr bool is_move_assignable
         = std::is_move_assignable<T>::value;
 
-    // TODO is_const (Maybe not needed because not supported by python
-
     using features = std::integer_sequence<bool,
-          // is_default_constructible,
           is_copy_assignable, is_move_assignable>;
 };
 
