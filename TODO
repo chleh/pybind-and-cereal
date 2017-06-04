@@ -1,7 +1,7 @@
 
 [x] const members (maybe not, because not supported by python)
 [ ] STL containers
-    * --> name mangling
+    [v] --> name mangling
 [v] steal from custom shared_ptr
     * go back to custom unique_ptr, provide item copier/mover there
       * implemented copier/mover in custom shared_ptr

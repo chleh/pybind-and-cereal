@@ -219,6 +219,8 @@ private:
         // Check if the auxiliary std::vector binding already exists.
         if (!all_types.contains(vec_type_name.c_str()))
         {
+            // TODO this procedure might create lots of duplicate binding code in many
+            // different modules
             auto vec_c = pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
                     m, mangle(vec_type_name), pybind11::buffer_protocol());
             all_types[vec_type_name.c_str()] = vec_c;
