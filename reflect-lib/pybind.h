@@ -50,7 +50,7 @@ bind_class(pybind11::module& module, std::false_type)
     return pybind11::class_<Class,
            typename Class::Meta::base,
            smart_ptr<Class>
-               >(module, remangle(Class::Meta::name()).c_str());
+               >(module, remangle(Class::Meta::mangled_name()).c_str());
 }
 
 // not derived class
@@ -59,7 +59,7 @@ decltype(auto)
 bind_class(pybind11::module& module, std::true_type)
 {
     return pybind11::class_<Class,
-           smart_ptr<Class>>(module, remangle(Class::Meta::name()).c_str());
+           smart_ptr<Class>>(module, remangle(Class::Meta::mangled_name()).c_str());
 }
 
 template <class Class, class... Cs>

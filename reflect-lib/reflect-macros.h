@@ -76,7 +76,7 @@ struct Type {
         using base = BASE; /* TODO templated base classes */ \
         /* static_assert(std::is_base_of<base, EXPAND(CLASS)>::value, */ \
                 /* "Error: base is not base class!"); */ \
-        static decltype(auto) name() { return typeid(EXPAND(CLASS)).name(); } \
+        static decltype(auto) mangled_name() { return typeid(EXPAND(CLASS)).name(); } \
         static constexpr decltype(auto) fields() \
         { \
             return std::make_tuple(GET_NAMES_POINTERS_TO_MEMBERS(CLASS, FIELDS)); \
