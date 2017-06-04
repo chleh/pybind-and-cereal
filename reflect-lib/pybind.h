@@ -16,6 +16,7 @@
 
 
 
+// Why not unique_ptr? --> Because it has to be copyable.
 PYBIND11_DECLARE_HOLDER_TYPE(T, smart_ptr<T>);
 
 

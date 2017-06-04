@@ -7,7 +7,6 @@
 #include <typeinfo>
 
 // TODO use something like std::shared_ptr<Item<T>> instead
-// Why not unique_ptr? --> Because it has to be copyable.
 template<typename T>
 class smart_ptr final
 {
