@@ -13,12 +13,14 @@
 
 
 #include <iostream>
-// #include <typeinfo>
 
 
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, smart_ptr<T>);
 
+
+namespace detail
+{
 
 struct NoOp
 {
@@ -29,17 +31,17 @@ struct NoOp
 };
 
 
+template <typename Visitor, typename... Ts, std::size_t... Idcs>
+void visit_impl(Visitor&& v, std::tuple<Ts...>&& t, std::index_sequence<Idcs...>)
+{
+    NoOp{ (v(std::forward<Ts>(std::get<Idcs>(t))), 0) ... };
+}
+
 template <typename Visitor, typename... Ts>
 void visit(Visitor&& v, std::tuple<Ts...>&& t)
 {
     using Idcs = std::index_sequence_for<Ts...>;
     visit_impl(std::forward<Visitor>(v), std::forward<std::tuple<Ts...>>(t), Idcs{});
-}
-
-template <typename Visitor, typename... Ts, std::size_t... Idcs>
-void visit_impl(Visitor&& v, std::tuple<Ts...>&& t, std::index_sequence<Idcs...>)
-{
-    NoOp{ (v(std::forward<Ts>(std::get<Idcs>(t))), 0) ... };
 }
 
 // derived class
@@ -64,17 +66,6 @@ bind_class(pybind11::module& module, std::true_type)
 
 template <class Class, class... Cs>
 decltype(auto)
-add_ctor(pybind11::class_<Class, Cs...>& c)
-{
-    // TODO add copy ctor
-    // move ctor not supported
-    // TODO add aggregate ctor if type is aggegate (issue warning if wrongly
-    // inferred) --> CPPCON talk by Yandex guy
-    return add_ctor_impl(c, std::is_abstract<Class>{});
-}
-
-template <class Class, class... Cs>
-decltype(auto)
 add_ctor_impl(pybind11::class_<Class, Cs...>& c, std::true_type)
 {
     return c;
@@ -85,6 +76,17 @@ decltype(auto)
 add_ctor_impl(pybind11::class_<Class, Cs...>& c, std::false_type)
 {
     return c.def(pybind11::init());
+}
+
+template <class Class, class... Cs>
+decltype(auto)
+add_ctor(pybind11::class_<Class, Cs...>& c)
+{
+    // TODO add copy ctor
+    // move ctor not supported
+    // TODO add aggregate ctor if type is aggegate (issue warning if wrongly
+    // inferred) --> CPPCON talk by Yandex guy
+    return add_ctor_impl(c, std::is_abstract<Class>{});
 }
 
 template<typename T>
@@ -279,6 +281,9 @@ Visitor<Class> makeVisitor(Class& c, Args&&... args) {
     return Visitor<Class>{c, std::forward<Args>(args)...};
 }
 
+}  // namespace detail
+
+
 template<typename Class>
 void bind_with_pybind(pybind11::module& module)
 {
@@ -288,21 +293,21 @@ void bind_with_pybind(pybind11::module& module)
     auto all_types = pybind11::getattr(module, "all_types").cast<pybind11::dict>();
 
     // create class
-    auto c = bind_class<Class>(module, std::is_same<typename Class::Meta::base, void>{});
+    auto c = detail::bind_class<Class>(module, std::is_same<typename Class::Meta::base, void>{});
 
     // register in type list
     auto const name = demangle(Class::Meta::mangled_name());
     all_types[name.c_str()] = c;
 
     // add constructor
-    add_ctor(c);
+    detail::add_ctor(c);
 
     // add data fields
-    auto v = makeVisitor(c, module, all_types);
-    visit(v, Class::Meta::fields());
+    auto v = detail::makeVisitor(c, module, all_types);
+    detail::visit(v, Class::Meta::fields());
 
     // add methods
-    visit([&c](auto const& name_member) {
+    detail::visit([&c](auto const& name_member) {
             c.def(name_member.first, name_member.second);
             }, Class::Meta::methods());
 }
