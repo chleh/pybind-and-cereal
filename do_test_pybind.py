@@ -55,6 +55,11 @@ print("tmp after move", tmp)
 print("tmp.s after move \"{}\"".format(tmp.s))
 print("d1.b", d1.b, d1.b.s)
 
+### unique_ptr holding non-copyable type
+d1.ncp__MOVE_IN = tp.NoCopy()
+print("d1.ncp", d1.ncp)
+d1.ncp = None
+
 print("del d1")
 del d1
 

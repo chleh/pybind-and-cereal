@@ -156,26 +156,32 @@ private:
         op_impl(name_member, t, typename TypeFeatures<Res>::features{});
     }
 
+    // member of type std::unique_ptr
     template <typename MemberPtr, typename UniqueT, typename UniqueD, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::unique_ptr<UniqueT, UniqueD>>) const
     {
-        // TODO support assigning nullptr
         auto const& member_pointer = name_member.second;
         using Class = typename GetClass<MemberPtr>::type;
-        // using Res   = typename ResultType<MemberPtr>::type;
         pybind11::cpp_function fget(
                 [member_pointer](Class& c) -> UniqueT* {
                     return (c.*member_pointer).get();
                 },
-                pybind11::is_method(this->c));
-        c.def_property_readonly(name_member.first,
-                fget, pybind11::return_value_policy::reference_internal);
+                pybind11::is_method(this->c),
+                pybind11::return_value_policy::reference_internal
+                );
+        // reset with nullptr
+        auto fset = [member_pointer](Class& c, std::nullptr_t) {
+            (c.*member_pointer).reset();
+        };
+        c.def_property(name_member.first, fget, fset);
 
         std::string const name = name_member.first;
         // TODO reenable if also examining if UniqueT is final
         // if (std::is_copy_constructible<UniqueT>::value)
         {
+            // copy-construct held object
+            // TODO maybe copy-assign? --> Con: needs to check that !nullptr
             auto const py_name = name + "__COPY_IN";
             pybind11::cpp_function fget(
                     [name, py_name](Class& c) -> UniqueT* {
@@ -198,6 +204,8 @@ private:
         }
         // if (std::is_move_constructible<UniqueT>::value)
         {
+            // move-construct held object
+            // TODO maybe move-assign? --> Con: needs to check that !nullptr
             auto const py_name = name + "__MOVE_IN";
             pybind11::cpp_function fget(
                     [name, py_name](Class& c) -> UniqueT* {
@@ -221,6 +229,7 @@ private:
     }
 
     // TODO: std::map, std::set, std::list, std::...
+    // member of type std::vector
     template <typename MemberPtr, typename VecElem, typename VecAlloc, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::vector<VecElem, VecAlloc>>) const
@@ -238,8 +247,7 @@ private:
         c.def_readwrite(name_member.first, name_member.second);
     }
 
-
-    // return reference by default --> is already pybind default for getters (according to docs)
+    // copyable member
     template <typename MemberPtr, typename Res, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<Res>, std::integer_sequence<bool, true /*copy*/, Feats...>
@@ -250,13 +258,16 @@ private:
         c.def_readwrite(name_member.first, name_member.second);
     }
 
+    // move-only member
     template <typename MemberPtr, typename Res, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<Res>, std::integer_sequence<bool, false /*copy*/, true /*move*/, Feats...>
             ) const
     {
+        // provide read access
         c.def_readonly(name_member.first, name_member.second);
 
+        // move-construct member
         using Class = typename GetClass<MemberPtr>::type;
         auto const& member_pointer = name_member.second;
         std::string const name = name_member.first;

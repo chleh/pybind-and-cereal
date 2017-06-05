@@ -15,6 +15,7 @@
 [v] check is_default_constructible
 [ ] guess some constructors, e.g. a constructor taking all the direct data members in
     the order defined by the reflection
+[ ] custom ctors
 [v] copy constructor, but not move ctor (because not supported by python)
 [ ] split tests
 [ ] derived class member shadowing base class member
@@ -32,4 +33,18 @@
 [ ] submodules
 [ ] test inheritance in python
 [ ] compilation speed
+[ ] check return policy for pointers, l-value refs, rvalues
+    [v] getters (def_read...()) are return_value_policy::reference_internal (pybind11.h)
+    *   default return value policy is automatic (check struct function_record),
+        i.e., copy/move for l-/r-values
+    [v] data members of type unique_ptr
+    [ ]
+[ ] overloaded methods (don't fit the current macros), check py::overload_cast
+
+
+Non-Features
+============
+
+* enums
+* templated member functions
 
