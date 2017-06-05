@@ -146,3 +146,11 @@ except Exception as e:
     print("ERROR", e)
 print("d1.nc", d1.nc)
 
+
+print("### vector test")
+vt = tp.VectorTest()
+print(vt.a)
+print(vt.b)
+print(vt.get())
+vt.set(tp.all_types["std::vector<int, std::allocator<int> >"]([1,2,3]))
+

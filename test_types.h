@@ -72,3 +72,13 @@ struct Derived3 : Base
     REFLECT_DERIVED((Derived3<T, U>), (Base), FIELDS(t, u, v, w), METHODS())
 };
 
+struct VectorTest
+{
+    std::unique_ptr<std::vector<int>> a;
+    std::vector<long> b;
+    std::vector<unsigned> get() const { return {}; }
+    void set(std::vector<int>) {}
+
+    REFLECT((VectorTest), FIELDS(a, b), METHODS(get, set))
+};
+

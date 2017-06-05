@@ -11,5 +11,7 @@ PYBIND11_MODULE(test_pybind, m) {
 
     bind_with_pybind<Derived3<int, int>>(m);
     bind_with_pybind<Derived3<int, double>>(m);
+
+    bind_with_pybind<VectorTest>(m);
 }
 

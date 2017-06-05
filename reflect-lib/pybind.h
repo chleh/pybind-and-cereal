@@ -134,8 +134,28 @@ struct TypeFeatures
           is_copy_assignable, is_move_assignable>;
 };
 
+template<typename T> void add_aux_type(T, pybind11::module& m, pybind11::dict&) {}
+
+// TODO: std::map, std::set, std::list, std::...
+template <typename VecElem, typename VecAlloc>
+void add_aux_type(Type<std::vector<VecElem, VecAlloc>>,
+        pybind11::module& m,
+        pybind11::dict& all_types)
+{
+    auto const vec_type_name = demangle(typeid(std::vector<VecElem, VecAlloc>).name());
+    // Check if the auxiliary std::vector binding already exists.
+    if (!all_types.contains(vec_type_name.c_str()))
+    {
+        // TODO this procedure might create lots of duplicate binding code in many
+        // different modules
+        auto vec_c = pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
+                m, mangle(vec_type_name), pybind11::buffer_protocol());
+        all_types[vec_type_name.c_str()] = vec_c;
+    }
+}
+
 template<typename PybindClass>
-struct Visitor
+struct DefFieldsVisitor
 {
     PybindClass& c;
     pybind11::module& m;
@@ -232,18 +252,9 @@ private:
     // member of type std::vector
     template <typename MemberPtr, typename VecElem, typename VecAlloc, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
-            Type<std::vector<VecElem, VecAlloc>>) const
+            Type<std::vector<VecElem, VecAlloc>> t) const
     {
-        auto const vec_type_name = demangle(typeid(std::vector<VecElem, VecAlloc>).name());
-        // Check if the auxiliary std::vector binding already exists.
-        if (!all_types.contains(vec_type_name.c_str()))
-        {
-            // TODO this procedure might create lots of duplicate binding code in many
-            // different modules
-            auto vec_c = pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
-                    m, mangle(vec_type_name), pybind11::buffer_protocol());
-            all_types[vec_type_name.c_str()] = vec_c;
-        }
+        add_aux_type(t, m, all_types);
         c.def_readwrite(name_member.first, name_member.second);
     }
 
@@ -290,14 +301,57 @@ private:
         c.def_property(py_name.c_str(), fget, fset);
     }
 
-    // TODO:
-    //  * pointer members (Maybe not, because conflicts with cereal)
-    //  * refactor to add_get, add_copy_assign, add_move_assign
+    // TODO: refactor to add_get, add_copy_assign, add_move_assign
 };
 
 template<typename Class, typename... Args>
-Visitor<Class> makeVisitor(Class& c, Args&&... args) {
-    return Visitor<Class>{c, std::forward<Args>(args)...};
+DefFieldsVisitor<Class> makeDefFieldsVisitor(Class& c, Args&&... args) {
+    return DefFieldsVisitor<Class>{c, std::forward<Args>(args)...};
+}
+
+template<typename PybindClass>
+struct DefMethodsVisitor
+{
+    PybindClass& c;
+    pybind11::module& m;
+    pybind11::dict& all_types;
+
+    template <typename MemberFctPtr>
+    void operator()(std::pair<const char*, MemberFctPtr> const& name_member) const
+    {
+        op_impl(name_member.first, name_member.second, name_member.second);
+    }
+
+private:
+    template<typename MemberFctPtr, typename Res, typename Class, typename... Args>
+    void op_impl(const char* name, MemberFctPtr member_ptr, Res (Class::*)(Args...) const) const
+    {
+        op_impl(name, member_ptr, static_cast<Res (Class::*)(Args...)>(nullptr));
+    }
+
+    template<typename MemberFctPtr, typename Res, typename Class, typename... Args>
+    void op_impl(const char* name, MemberFctPtr member_ptr, Res (Class::*)(Args...)) const
+    {
+        static_assert(!std::is_pointer<Res>::value,
+                "Methods returning pointers are not supported by this library.");
+
+        pybind11::return_value_policy policy = pybind11::return_value_policy::automatic;
+
+        if (std::is_lvalue_reference<Res>::value) {
+            policy = pybind11::return_value_policy::reference_internal;
+        }
+
+        visit([&](auto t) {
+                add_aux_type(t, m, all_types);
+                }, std::make_tuple(Type<typename std::decay<Res>::type>{},
+                    Type<typename std::decay<Args>::type>{}...));
+        c.def(name, member_ptr, policy);
+    }
+};
+
+template<typename Class, typename... Args>
+DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
+    return DefMethodsVisitor<Class>{c, std::forward<Args>(args)...};
 }
 
 }  // namespace detail
@@ -322,12 +376,13 @@ void bind_with_pybind(pybind11::module& module)
     detail::add_ctor(c);
 
     // add data fields
-    auto v = detail::makeVisitor(c, module, all_types);
-    detail::visit(v, Class::Meta::fields());
+    detail::visit(
+            detail::makeDefFieldsVisitor(c, module, all_types),
+            Class::Meta::fields());
 
     // add methods
-    detail::visit([&c](auto const& name_member) {
-            c.def(name_member.first, name_member.second);
-            }, Class::Meta::methods());
+    detail::visit(
+            detail::makeDefMethodsVisitor(c, module, all_types),
+            Class::Meta::methods());
 }
 

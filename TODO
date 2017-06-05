@@ -11,7 +11,6 @@
         returned reference. This is now implemented.
 [ ] overridden methods (write test)
 [ ] static methods
-[ ] static_assert is_base_of
 [v] check is_default_constructible
 [ ] guess some constructors, e.g. a constructor taking all the direct data members in
     the order defined by the reflection
@@ -26,10 +25,10 @@
     [ ] split tests
     [ ] more tests (pybind and serialization)
     [ ] rename macros
-    [ ] more static assertions, e.g. is_base_of
+    [ ] more static assertions, e.g. is_base_of, no pointer types supported
     [ ] smart_ptr<T> --> std::shared_ptr<Item<T>>
     [ ] clean up includes
-[ ] function overloads (e.g., for assigning nullptr to unique_ptr)
+[v] function overloads (e.g., for assigning nullptr to unique_ptr)
 [ ] submodules
 [ ] test inheritance in python
 [ ] compilation speed
@@ -38,7 +37,8 @@
     *   default return value policy is automatic (check struct function_record),
         i.e., copy/move for l-/r-values
     [v] data members of type unique_ptr
-    [ ]
+    [v] return values of member functions
+    [ ] write tests for that
 [ ] overloaded methods (don't fit the current macros), check py::overload_cast
 
 
@@ -47,4 +47,5 @@ Non-Features
 
 * enums
 * templated member functions
+* pointer data members: conflicts with cereal
 
