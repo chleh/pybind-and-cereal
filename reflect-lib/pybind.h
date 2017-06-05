@@ -341,6 +341,7 @@ private:
             policy = pybind11::return_value_policy::reference_internal;
         }
 
+        // add auxiliary bindings
         visit([&](auto t) {
                 add_aux_type(t, m, all_types);
                 }, std::make_tuple(Type<typename std::decay<Res>::type>{},
