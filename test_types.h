@@ -75,14 +75,17 @@ struct Derived3 : Base
     // test unique_ptr methods
     // std::unique_ptr<Base> f(std::unique_ptr<int> const&) { return nullptr; }
     std::unique_ptr<Base> f() { return std::make_unique<Derived1>(); }
+
     // TODO doesn't work: "Holder classes are only supported for custom types"
     // --> maybe wrap into further class?
     std::unique_ptr<int> fi() { return std::make_unique<int>(); }
+
     std::unique_ptr<int> const& g() const {
         static auto p = std::make_unique<int>();
         return p;
     }
-    // also check if aux types are derived from method arguments
+
+    // also check if aux types are derived from method arguments and return types
     std::unique_ptr<std::vector<NoCopy>>& h() {
         static auto p = std::make_unique<std::vector<NoCopy>>();
         return p;
