@@ -35,6 +35,7 @@ int main()
         archive(b);
 
         // Note: saving as derived type and reading as base type does not work!
+        // That might be a problem for using cereal in production
         archive(std::unique_ptr<Base>(std::move(d3)));
     }
 
