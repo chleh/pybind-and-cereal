@@ -26,10 +26,11 @@
     [ ] more tests (pybind and serialization)
     [ ] rename macros
     [ ] more static assertions, e.g. is_base_of, no pointer types supported
-    [ ] smart_ptr<T> --> std::shared_ptr<Item<T>>
+    [v] smart_ptr<T> --> std::shared_ptr<Item<T>>
+        [ ] write smart_ptr tests
     [ ] clean up includes
 [v] function overloads (e.g., for assigning nullptr to unique_ptr)
-[ ] submodules
+[ ] python submodules
 [ ] test inheritance in python
 [ ] compilation speed
 [ ] check return policy for pointers, l-value refs, rvalues
@@ -40,6 +41,8 @@
     [v] return values of member functions
     [ ] write tests for that
 [ ] overloaded methods (don't fit the current macros), check py::overload_cast
+    maybe add REFLECT_FULL(...) macro
+[ ] functions with unique_ptr returns/args
 
 
 Non-Features
