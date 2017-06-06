@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "reflect-lib/reflect-macros.h"
 
 #include <iostream>
@@ -47,6 +48,8 @@ struct Derived1 : Base
     // Derived1() = default;
     // ~Derived1() { std::cout << "~Derived1() s=" << s << '\n'; }
 
+    // TODO test also empty FIELDS()
+    // test also empty METHODS()
     REFLECT_DERIVED((Derived1), (Base), FIELDS(s, b, nc, ncp), METHODS(get_base))
 };
 
@@ -69,7 +72,20 @@ struct Derived3 : Base
 
     std::string what() override { return "der3"; };
 
-    REFLECT_DERIVED((Derived3<T, U>), (Base), FIELDS(t, u, v, w), METHODS())
+    // test unique_ptr methods
+    // std::unique_ptr<Base> f(std::unique_ptr<int> const&) { return nullptr; }
+    std::unique_ptr<Base> f() { return std::make_unique<Derived1>(); }
+    std::unique_ptr<int> const& g() const {
+        static auto p = std::make_unique<int>();
+        return p;
+    }
+    // also check if aux types are derived from method arguments
+    std::unique_ptr<std::vector<NoCopy>>& h() {
+        static auto p = std::make_unique<std::vector<NoCopy>>();
+        return p;
+    }
+
+    REFLECT_DERIVED((Derived3<T, U>), (Base), FIELDS(t, u, v, w), METHODS(f)) // TODO g, h
 };
 
 struct VectorTest

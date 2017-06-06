@@ -43,6 +43,7 @@
 [ ] overloaded methods (don't fit the current macros), check py::overload_cast
     maybe add REFLECT_FULL(...) macro
 [ ] functions with unique_ptr returns/args
+[ ] test std::vector<std::unique_ptr<T>>
 
 
 Non-Features

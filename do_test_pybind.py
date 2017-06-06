@@ -154,3 +154,10 @@ print(vt.b)
 print(vt.get())
 vt.set(tp.all_types["std::vector<int, std::allocator<int> >"]([1,2,3]))
 
+
+### test unique_ptr fcts
+
+d3 = tp.all_types["Derived3<int, int>"]();
+res = d3.f()
+print("res", res, type(res))
+

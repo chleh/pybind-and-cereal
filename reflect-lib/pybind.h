@@ -348,6 +348,23 @@ private:
                     Type<typename std::decay<Args>::type>{}...));
         c.def(name, member_ptr, policy);
     }
+
+    template<typename MemberFctPtr, typename UniqueT, typename UniqueD,
+        typename Class, typename... Args>
+    void op_impl(const char* name, MemberFctPtr member_ptr,
+            std::unique_ptr<UniqueT, UniqueD> (Class::*)(Args...)) const
+    {
+        // add auxiliary bindings
+        visit([&](auto t) {
+                add_aux_type(t, m, all_types);
+                }, std::make_tuple(Type<typename std::decay<UniqueT>::type>{},
+                    Type<typename std::decay<Args>::type>{}...));
+        auto f = [member_ptr](Class& c, Args... args) {
+            return smart_ptr<UniqueT>{
+                (c.*member_ptr)(std::forward<Args>(args)...).release()};
+        };
+        c.def(name, f);
+    }
 };
 
 template<typename Class, typename... Args>
