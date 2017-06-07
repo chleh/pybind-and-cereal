@@ -78,3 +78,63 @@ std::string mangle(std::string s)
     return s;
 }
 
+std::string demangle2(std::string name)
+{
+    std::string repl;
+
+    for (auto pos = name.find('_'); pos != name.npos; pos = name.find('_', pos)) {
+        if (pos == name.length() - 1) break;
+
+        switch (name[pos+1]) {
+            case '_':
+                name.erase(pos, 1);
+                pos++;
+                continue;
+            case 'A':
+                repl = "&&";
+                break;
+            case 'S':
+                repl = "::";
+                break;
+            case 'c':
+                repl = ",";
+                break;
+            case 'C':
+                repl = " const";
+                break;
+            case 's':
+                repl = " ";
+                break;
+            case 'L':
+                repl = "<";
+                break;
+            case 'R':
+                repl = ">";
+                break;
+            case 'l':
+                repl = "(";
+                break;
+            case 'r':
+                repl = ")";
+                break;
+            case 'k':
+                repl = "[";
+                break;
+            case 'q':
+                repl = "]";
+                break;
+            case 'a':
+                repl = "&";
+                break;
+            case 'p':
+                repl = "*";
+                break;
+        }
+
+        name.replace(pos, 2, repl);
+        ++pos;
+    }
+    
+    return name;
+}
+
