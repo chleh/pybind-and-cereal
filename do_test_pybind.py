@@ -158,6 +158,7 @@ print("before assignment: vt.a", type(vt.a), vt.a)
 ## move-assign std::vector<int>, that's special,
 # because custom holder type of some default type
 tmp = tp.all_types["std::vector<int, std::allocator<int> >"]()
+# TODO there might be garbage collection issues
 tmp2 = tp.make_ref(tmp)
 print("tmp2", type(tmp2), tmp2)
 vt.a__MOVE_IN2 = tmp2
