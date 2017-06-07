@@ -66,6 +66,9 @@ public:
     T& operator*() const {
         return *(i->ptr);
     }
+    T* operator->() const {
+        return get();
+    }
 
     T* new_copied() const {
         // TODO throw

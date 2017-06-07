@@ -57,6 +57,10 @@ print("d1.b", d1.b, d1.b.s)
 
 ### unique_ptr holding non-copyable type
 d1.ncp__MOVE_IN = tp.NoCopy()
+try:
+    d1.ncp__MOVE_IN = tp.Derived1()
+except TypeError as e:
+    print("ERROR", e)
 print("d1.ncp", d1.ncp)
 d1.ncp = None
 
@@ -149,7 +153,19 @@ print("d1.nc", d1.nc)
 
 print("### vector test")
 vt = tp.VectorTest()
-print(vt.a)
+print("before assignment: vt.a", type(vt.a), vt.a)
+
+## move-assign std::vector<int>, that's special,
+# because custom holder type of some default type
+tmp = tp.all_types["std::vector<int, std::allocator<int> >"]()
+tmp2 = tp.make_ref(tmp)
+print("tmp2", type(tmp2), tmp2)
+vt.a__MOVE_IN2 = tmp2
+
+print("after assignment: vt.a", type(vt.a), vt.a)
+vt.a.append(1)
+print("after append: vt.a", vt.a)
+
 print(vt.b)
 print(vt.get())
 vt.set(tp.all_types["std::vector<int, std::allocator<int> >"]([1,2,3]))
