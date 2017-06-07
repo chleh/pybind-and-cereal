@@ -44,10 +44,12 @@
     maybe add REFLECT_FULL(...) macro
 [ ] functions with unique_ptr returns/args
 [ ] test std::vector<std::unique_ptr<T>>
-[ ] "Unable to load a custom holder type from a default-holder instance"
+[v] "Unable to load a custom holder type from a default-holder instance"
     e.g., with std::vector<int>
-    * maybe circumvent by globally setting the pybind11 holder type
-    * maybe circumvent by wrapping std::vector<int> in some custom type
+    [x] maybe circumvent by globally setting the pybind11 holder type
+        --> default is unique_ptr, cf. pybind11.h
+    [x] maybe circumvent by wrapping std::vector<int> in some custom type
+    * issue resolved by specifying right holder type for std::vector
 
 [ ] check https://github.com/RosettaCommons/binder
 

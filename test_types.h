@@ -100,7 +100,8 @@ struct VectorTest
     std::vector<long> b;
     std::vector<unsigned> get() const { return {}; }
     void set(std::vector<int>) {}
+    void set_ref(std::vector<short>&) {}
 
-    REFLECT((VectorTest), FIELDS(a, b), METHODS(get, set))
+    REFLECT((VectorTest), FIELDS(a, b), METHODS(get, set, set_ref))
 };
 

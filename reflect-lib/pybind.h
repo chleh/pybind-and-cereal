@@ -24,72 +24,6 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, smart_ptr<T>);
 namespace detail
 {
 
-template <typename T>
-class my_ref
-{
-public:
-    explicit my_ref(T& obj)
-        : ref(&obj), data_mover{make_mover()}, data_copier{make_copier()}
-    {}
-
-    /*
-    my_ref(my_ref<T> const&) = default;
-    my_ref(my_ref<T> &&) = default;
-
-    my_ref<T>& operator=(my_ref<T> const&) = default;
-    my_ref<T>& operator=(my_ref<T> &&) = default;
-    */
-
-    T* operator->() const { return ref; }
-
-    // TODO use some typeid stuff for that, because the ctor argument might be a
-    // base class pointer
-    T* new_copied() const {
-        assert(data_copier);
-        return data_copier(*ref);
-    }
-    T* new_moved() const {
-        assert(data_mover);
-        return data_mover(std::move(*ref));
-    }
-
-private:
-    T* ref;
-
-    using MoveFct = T*(*)(T&&);
-    using CopyFct = T*(*)(T const&);
-
-    static MoveFct make_mover() { return make_mover(std::is_move_constructible<T>{}); }
-    static MoveFct make_mover(std::true_type) {
-        return [](T&& t){ return new T{std::move(t)}; };
-    }
-    static MoveFct make_mover(std::false_type) {
-        return nullptr;
-    }
-
-    static CopyFct make_copier() { return make_copier(std::is_copy_constructible<T>{}); }
-    static CopyFct make_copier(std::true_type) {
-        return [](T const& t){ return new T{t}; };
-    }
-    static CopyFct make_copier(std::false_type) {
-        return nullptr;
-    }
-
-    MoveFct data_mover = nullptr;
-    CopyFct data_copier = nullptr;
-};
-
-template<typename T>
-// my_ref<T>
-decltype(auto)
-make_ref(T& obj) {
-    return smart_ptr<my_ref<T>>{
-        new my_ref<T>{obj}
-    };
-}
-
-
-
 struct NoOp
 {
     template<typename... Ts>
@@ -209,13 +143,14 @@ void add_aux_type(Type<std::vector<VecElem, VecAlloc>>,
         pybind11::module& m,
         pybind11::dict& all_types)
 {
-    auto const vec_type_name = demangle(typeid(std::vector<VecElem, VecAlloc>).name());
+    using Vec = std::vector<VecElem, VecAlloc>;
+    auto const vec_type_name = demangle(typeid(Vec).name());
     // Check if the auxiliary std::vector binding already exists.
     if (!all_types.contains(vec_type_name.c_str()))
     {
         // TODO this procedure might create lots of duplicate binding code in many
         // different modules
-        auto vec_c = pybind11::bind_vector<std::vector<VecElem, VecAlloc>>(
+        auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
                 m, mangle(vec_type_name), pybind11::buffer_protocol());
         all_types[vec_type_name.c_str()] = vec_c;
     }
@@ -312,39 +247,6 @@ private:
                     pybind11::is_method(this->c));
 
             c.def_property(py_name.c_str(), fget, fset);
-        }
-
-        {
-            m.def("make_ref", (smart_ptr<my_ref<UniqueT>> (*)(UniqueT&)) make_ref);
-            pybind11::class_<my_ref<UniqueT>, smart_ptr<my_ref<UniqueT>>>(
-                    m, remangle(typeid(my_ref<UniqueT>).name()).c_str());
-
-            // move-construct held object
-            // TODO maybe move-assign? --> Con: needs to check that !nullptr
-            auto const py_name = name + "__MOVE_IN2";
-            pybind11::cpp_function fget(
-                    [name, py_name](Class& c) -> UniqueT* {
-                        throw pybind11::key_error{"The member \"" + py_name + "\" is not intended for read access of "
-                            "the data member \"" + name + "\".\n"
-                            "Rather, \"" + py_name + "\" shall only be used for move-constructing "
-                            "the C++ object held by the member \"" + name + "\" (\"" + name + "\" being a std::unique_ptr), i.e., in "
-                            "Python code like:\n"
-                            "    obj." + py_name + " = rhs\n"
-                            "For read access to \"" + name + "\" please use the member \"" + name + "\" instead."};
-                    },
-                    pybind11::is_method(this->c));
-            pybind11::cpp_function fset(
-                    [member_pointer](Class& c, smart_ptr<my_ref<UniqueT>>& value) {
-                        (c.*member_pointer).reset(value->new_moved());
-                    },
-                    pybind11::is_method(this->c));
-
-            c.def_property(py_name.c_str(), fget, fset);
-            // m.def("make_ref", pybind11::overload_cast<UniqueT>(&detail::make_ref));
-
-            // m.def("make_ref", (my_ref<UniqueT> (*)(UniqueT&)) &detail::make_ref);
-            // pybind11::class_<my_ref<UniqueT>, smart_ptr<my_ref<UniqueT>>>(
-            //         m, remangle(typeid(make_ref<UniqueT>).name()).c_str());
         }
     }
 
