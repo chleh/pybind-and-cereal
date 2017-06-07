@@ -49,6 +49,8 @@
     * maybe circumvent by globally setting the pybind11 holder type
     * maybe circumvent by wrapping std::vector<int> in some custom type
 
+[ ] check https://github.com/RosettaCommons/binder
+
 
 Non-Features
 ============
