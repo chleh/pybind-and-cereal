@@ -351,6 +351,7 @@ private:
         c.def(name, member_ptr, policy);
     }
 
+    // method returning std::unique_ptr
     template<typename MemberFctPtr, typename UniqueT, typename UniqueD,
         typename Class, typename... Args>
     void op_impl(const char* name, MemberFctPtr member_ptr,
@@ -367,6 +368,8 @@ private:
         };
         c.def(name, f);
     }
+    // TODO returning unique_ptr&, unique_ptr const&
+    // TODO taking unique_ptr&, unique_ptr const&, unique_ptr&&, unique_ptr as argument?
 };
 
 template<typename Class, typename... Args>
