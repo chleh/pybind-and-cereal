@@ -1,17 +1,15 @@
 cmake_minimum_required(VERSION 3.1)
 project(pybind_cereal_example)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 set (CMAKE_CXX_STANDARD 14)
 ADD_DEFINITIONS("-Wall")
-
-# FIND_PACKAGE(PythonInterp)
-# FIND_PACKAGE(PythonLibs)
+set(PYBIND11_PYTHON_VERSION 3)
 
 add_subdirectory(pybind11)
 
-set(PYBIND11_PYTHON_VERSION 3)
+add_subdirectory(aux)
+add_subdirectory(test)
+add_subdirectory(reflect-lib)
 
-pybind11_add_module(test_pybind test_pybind.cpp reflect-lib/remangle.cpp)
-pybind11_add_module(py_mangle py_mangle.cpp reflect-lib/remangle.cpp)
-
-add_executable(test_serialization test_serialization.cpp)
