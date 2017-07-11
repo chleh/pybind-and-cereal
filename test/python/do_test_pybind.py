@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import test_pybind as tp
+import bindings as tp
 
 print(dir(tp))
 print("all_types", tp.all_types)
