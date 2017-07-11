@@ -9,7 +9,7 @@ set(PYBIND11_PYTHON_VERSION 3)
 
 add_subdirectory(pybind11)
 
+add_subdirectory(reflect-lib)
 add_subdirectory(aux)
 add_subdirectory(test)
-add_subdirectory(reflect-lib)
 

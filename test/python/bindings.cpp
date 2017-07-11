@@ -2,8 +2,7 @@
 
 #include "test/test_types.h"
 
-
-PYBIND11_MODULE(test_pybind, m) {
+PYBIND11_MODULE(bindings, m) {
     bind_with_pybind<Base>(m);
     bind_with_pybind<Derived1>(m);
     bind_with_pybind<Derived2>(m);
