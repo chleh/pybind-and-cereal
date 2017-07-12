@@ -41,7 +41,7 @@ struct Derived1 : Base
     std::unique_ptr<NoCopy> ncp;
 
     Base& get_base() { return *this; }
-    std::string what() override { return "der1"; };
+    std::string what() override { return "der1"; }
 
     // Destructor prevents implicit move ctor
     // Derived1(Derived1&&) = default;
