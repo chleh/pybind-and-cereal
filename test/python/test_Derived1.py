@@ -1,77 +1,91 @@
 #!/usr/bin/python
 
+import unittest
 import bindings as tp
 
-assert "all_types" in dir(tp)
+class TestDerived1(unittest.TestCase):
+    def setUp(self):
+        self.d1 = tp.Derived1()
 
-d1 = tp.Derived1()
-d1.s = "d1"
+    def test_all_types_in_module(self):
+        self.assertTrue("all_types" in dir(tp))
 
-d1.i = 1
-assert d1.i == 1
+    def test_member_string(self):
+        self.d1.s = "d1"
+        self.assertEqual("d1", self.d1.s)
 
-d1.v.append(1.0)
-assert len(d1.v) == 1 and d1.v[0] == 1.0
+    def test_member_int(self):
+        self.d1.i = 1
+        self.assertEqual(1, self.d1.i)
 
-d1.v = tp.all_types["std::vector<float, std::allocator<float> >"]([1,2,3])
-assert len(d1.v) == 3
+    def test_member_vector(self):
+        self.d1.v.append(1.0)
+        self.assertEqual(1, len(self.d1.v))
+        self.assertEqual(1.0, self.d1.v[0])
 
-# also checks that d1.v is iterable
-for i_, v_ in enumerate(d1.v[:]):
-    assert v_ == i_ + 1.0
+        v = tp.all_types["std::vector<float, std::allocator<float> >"]([1,2,3])
+        self.d1.v = v  # copy assignment
+        self.assertEqual(3, len(self.d1.v))
 
-assert d1.say_hello() == "hello!"
+        # also checks that d1.v is iterable
+        for i_, v_ in enumerate(self.d1.v[:]):
+            self.assertEqual(i_ + 1.0, v_)
 
-# TODO
-# b = d1.get_base()
-# print(d1, b)
-#
-# b.i = 8
-# print("d1.i", d1.i)
+        # check that the assignment above really copied
+        v[0] = 5
+        self.assertEqual(1, self.d1.v[0])
 
-d1.nc.i = 7
-assert d1.nc.i == 7
+    def test_method_string(self):
+        self.assertEqual("hello!", self.d1.say_hello())
 
-# overridden virtual method
-assert d1.what() == "der1"
+    # TODO
+    # b = d1.get_base()
+    # print(d1, b)
+    #
+    # b.i = 8
+    # print("d1.i", d1.i)
 
-### check that error messages are generated
-try:
-    print(d1.b__COPY_IN)
-except Exception as e:
-    print("ERROR", e)
+    def test_member_of_member(self):
+        self.d1.nc.i = 7
+        self.assertEqual(7, self.d1.nc.i)
 
-### check that error messages are generated
-try:
-    print(d1.b__MOVE_IN)
-except Exception as e:
-    print("ERROR", e)
+    def test_method_overridden(self):
+        self.assertEqual("der1", self.d1.what())
 
-print("new: tmp")
-tmp = tp.Derived1()
-tmp.s = "tmp"  # Note standard python strings are immutable. String assignment always copies
+    def test_member_accessor_write_only(self):
+        # ...__COPY_IN and ...__MOVE_IN are for write access only
+        with self.assertRaises(KeyError):
+            a = self.d1.b__COPY_IN
+        # print(type(e.exception), e.exception)
 
-### check move assignment of std::unique_ptr
-d1.b__MOVE_IN = tmp
-# d1.b__COPY_IN = tmp  ## tmp is not copyable!
+        with self.assertRaises(KeyError):
+            a = self.d1.b__MOVE_IN
 
-print("tmp after move", tmp)
-print("tmp.s after move \"{}\"".format(tmp.s))
-print("d1.b", d1.b, d1.b.s)
+    def test_move_assignment(self):
+        tmp = tp.Derived1()
+        tmp.s = "tmp"
 
-### unique_ptr holding non-copyable type
-d1.ncp__MOVE_IN = tp.NoCopy()
+        self.d1.b__MOVE_IN = tmp
+        # d1.b__COPY_IN = tmp  ## tmp is not copyable!
 
-try:
-    # incompatible types
-    d1.ncp__MOVE_IN = tp.Derived1()
-except TypeError as e:
-    print("ERROR", e)
-print("d1.ncp", d1.ncp)
-d1.ncp = None
+        # print("tmp.s after move \"{}\"".format(tmp.s))
+        self.assertEqual("tmp", self.d1.b.s)
+        self.assertEqual("", tmp.s)
 
-print("del d1")
-del d1
+        ### unique_ptr holding non-copyable type
+        self.d1.ncp__MOVE_IN = tp.NoCopy()
+        self.assertIsNotNone(self.d1.ncp)
+
+        with self.assertRaises(TypeError):
+            # incompatible types
+            self.d1.ncp__MOVE_IN = tp.Derived1()
+
+        self.assertIsNotNone(self.d1.ncp)
+
+        # test assignment of None
+        self.d1.ncp = None
+        self.assertIsNone(self.d1.ncp)
+
 
 if False:
     # BOOM! -- Fixed in the current implementation
@@ -90,9 +104,8 @@ if False:
     print("tmp after move", tmp)
     print("tmp.s after move \"{}\"".format(tmp.s))
 
-del tmp
+    del tmp
 
-if False:
     d1a = tp.Derived1()
     d1a.s = "d1a"
 
@@ -117,5 +130,6 @@ if False:
     # d1.b = tmp
 
 
-
+if __name__ == '__main__':
+    unittest.main()
 
