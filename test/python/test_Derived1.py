@@ -100,35 +100,6 @@ if False:
     # destroyed subsequently without Python noticing it.
     tmp.s = "500000000000000000000000000000000000000000000000000000000000000000" * 100
 
-    # python still references the "stolen" object :-(
-    print("tmp after move", tmp)
-    print("tmp.s after move \"{}\"".format(tmp.s))
-
-    del tmp
-
-    d1a = tp.Derived1()
-    d1a.s = "d1a"
-
-    if False:
-        d1a.b = tmp  # BOOM! (on deletion)
-
-    if d1.b is not None:
-        print("d1.b", d1.b, d1.b.i)
-    else:
-        print("d1.b is None")
-
-    d1.b = None
-    # d1.b = 1
-    print(tmp, tmp.s)
-    del tmp
-
-    print("##### cut #####")
-
-    # tmp = tp.Derived1()
-    # tmp.s = "tmp 2nd"
-
-    # d1.b = tmp
-
 
 if __name__ == '__main__':
     unittest.main()
