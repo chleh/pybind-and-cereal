@@ -1,12 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <cassert>
 
-#include <iostream>
-#include <typeinfo>
+#include <pybind11/common.h>
 
-// TODO use something like std::shared_ptr<Item<T>> instead
 template<typename T>
 class smart_ptr final
 {
@@ -71,17 +68,17 @@ public:
     }
 
     T* new_copied() const {
-        // TODO throw
-        assert(i);  // or:  if (!*this) return nullptr;  ???
-        assert(i->ptr);
-        assert(i->data_copier); // TODO error message only here
+        if (!*this) return nullptr;
+        if (!i->data_copier)
+            throw pybind11::type_error{
+                "Tried to copy-construct a non-copy-constructible type."};
         return i->data_copier(*i->ptr);
     }
     T* new_moved() const {
-        // TODO throw
-        assert(i);
-        assert(i->ptr);
-        assert(i->data_mover); // TODO error message only here
+        if (!*this) return nullptr;
+        if (!i->data_mover)
+            throw pybind11::type_error{
+                "Tried to move-construct a non-move-constructible type."};
         return i->data_mover(std::move(*i->ptr));
     }
 
