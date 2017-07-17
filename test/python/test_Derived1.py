@@ -55,10 +55,6 @@ class TestDerived1(unittest.TestCase):
         tmp = tp.Derived1()
         tmp.s = "tmp"
 
-        # TODO: improve shared pointer, add further tests
-        with self.assertRaises(TypeError):
-            self.d1.b__COPY_IN = tmp  ## tmp is not copyable!
-
         self.d1.b__MOVE_IN = tmp
 
         self.assertEqual("tmp", self.d1.b.s)

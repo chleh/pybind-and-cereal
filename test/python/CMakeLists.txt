@@ -13,4 +13,5 @@ add_py_test(test_Derived1)
 add_py_test(test_moveonly)
 add_py_test(test_unique_ptr)
 add_py_test(test_vector)
+add_py_test(test_smart_ptr)
 
