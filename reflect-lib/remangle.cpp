@@ -5,6 +5,9 @@
 
 #include "remangle.h"
 
+namespace reflect_lib
+{
+
 std::string demangle(const char* mangled_name)
 {
     // TODO does the returned string have to be normalized?
@@ -138,3 +141,4 @@ std::string demangle2(std::string name)
     return name;
 }
 
+}  // namespace reflect_lib

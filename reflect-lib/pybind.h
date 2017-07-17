@@ -12,14 +12,13 @@
 #include "remangle.h"
 #include "smart_ptr.h"
 
-
 #include <iostream>
 
-
-
 // Why not unique_ptr? --> Because it has to be copyable.
-PYBIND11_DECLARE_HOLDER_TYPE(T, smart_ptr<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, reflect_lib::smart_ptr<T>);
 
+namespace reflect_lib
+{
 
 namespace detail
 {
@@ -409,3 +408,4 @@ void bind_with_pybind(pybind11::module& module)
             Class::Meta::methods());
 }
 
+}  // namespace reflect_lib

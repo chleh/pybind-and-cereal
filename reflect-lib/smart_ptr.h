@@ -4,6 +4,9 @@
 
 #include <pybind11/common.h>
 
+namespace reflect_lib
+{
+
 template<typename T>
 class smart_ptr final
 {
@@ -89,3 +92,5 @@ public:
 private:
     std::shared_ptr<item> i;
 };
+
+}  // namespace reflect_lib

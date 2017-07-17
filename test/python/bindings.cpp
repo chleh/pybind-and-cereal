@@ -3,6 +3,8 @@
 #include "test/test_types.h"
 
 PYBIND11_MODULE(bindings, m) {
+    using namespace reflect_lib;
+
     bind_with_pybind<Base>(m);
     bind_with_pybind<Derived1>(m);
     bind_with_pybind<Derived2>(m);
