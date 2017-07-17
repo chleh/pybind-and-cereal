@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import unittest
 import bindings as tp
 
@@ -38,13 +36,6 @@ class TestDerived1(unittest.TestCase):
     def test_method_string(self):
         self.assertEqual("hello!", self.d1.say_hello())
 
-    # TODO
-    # b = d1.get_base()
-    # print(d1, b)
-    #
-    # b.i = 8
-    # print("d1.i", d1.i)
-
     def test_member_of_member(self):
         self.d1.nc.i = 7
         self.assertEqual(7, self.d1.nc.i)
@@ -56,7 +47,6 @@ class TestDerived1(unittest.TestCase):
         # ...__COPY_IN and ...__MOVE_IN are for write access only
         with self.assertRaises(KeyError):
             a = self.d1.b__COPY_IN
-        # print(type(e.exception), e.exception)
 
         with self.assertRaises(KeyError):
             a = self.d1.b__MOVE_IN
@@ -65,10 +55,12 @@ class TestDerived1(unittest.TestCase):
         tmp = tp.Derived1()
         tmp.s = "tmp"
 
-        self.d1.b__MOVE_IN = tmp
-        # d1.b__COPY_IN = tmp  ## tmp is not copyable!
+        # TODO: improve shared pointer, add further tests
+        with self.assertRaises(TypeError):
+            self.d1.b__COPY_IN = tmp  ## tmp is not copyable!
 
-        # print("tmp.s after move \"{}\"".format(tmp.s))
+        self.d1.b__MOVE_IN = tmp
+
         self.assertEqual("tmp", self.d1.b.s)
         self.assertEqual("", tmp.s)
 

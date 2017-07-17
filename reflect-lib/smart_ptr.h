@@ -72,7 +72,7 @@ public:
 
     T* new_copied() const {
         // TODO throw
-        assert(i);
+        assert(i);  // or:  if (!*this) return nullptr;  ???
         assert(i->ptr);
         assert(i->data_copier); // TODO error message only here
         return i->data_copier(*i->ptr);

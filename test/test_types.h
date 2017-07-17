@@ -98,9 +98,11 @@ struct VectorTest
 {
     std::unique_ptr<std::vector<int>> a;
     std::vector<long> b;
-    std::vector<unsigned> get() const { return {}; }
+    std::vector<unsigned> get() const { return { 8 }; }
     void set(std::vector<int>) {}
-    void set_ref(std::vector<short>&) {}
+    void set_ref(std::vector<short>& tmp) {
+        if (tmp.size() != 0) tmp[0] = 7;
+    }
 
     REFLECT((VectorTest), FIELDS(a, b), METHODS(get, set, set_ref))
 };
