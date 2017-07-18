@@ -3,7 +3,7 @@ pybind11_add_module(bindings bindings.cpp)
 target_link_libraries(bindings PRIVATE reflection)
 
 macro(add_py_test test_name)
-    add_test(NAME ${test_name}
+    add_test(NAME "py_${test_name}"
         COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/${test_name}.py"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 endmacro()
