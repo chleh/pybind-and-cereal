@@ -1,7 +1,13 @@
 #pragma once
 
 #include <tuple>
+#include <utility>
 
+#include <cereal/types/base_class.hpp>
+#include <cereal/types/vector.hpp> // TODO also add other
+
+namespace reflect_lib
+{
 namespace detail
 {
 template <class Archive, class Object, class... Pairs, std::size_t... Idcs>
@@ -91,3 +97,4 @@ void load_impl(Archive& archive,
 }
 
 }  // namespace detail
+}  // namespace reflect_lib
