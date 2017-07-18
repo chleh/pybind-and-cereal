@@ -378,17 +378,18 @@ DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
 
 }  // namespace detail
 
-
-template<typename Class>
-void bind_with_pybind(pybind11::module& module)
+template <typename Class>
+decltype(auto) bind_with_pybind(pybind11::module& module)
 {
     if (!pybind11::hasattr(module, "all_types")) {
         module.add_object("all_types", pybind11::dict{});
     }
-    auto all_types = pybind11::getattr(module, "all_types").cast<pybind11::dict>();
+    auto all_types =
+        pybind11::getattr(module, "all_types").cast<pybind11::dict>();
 
     // create class
-    auto c = detail::bind_class<Class>(module, std::is_same<typename Class::Meta::base, void>{});
+    auto c = detail::bind_class<Class>(
+        module, std::is_same<typename Class::Meta::base, void>{});
 
     // register in type list
     auto const name = demangle(Class::Meta::mangled_name());
@@ -398,14 +399,14 @@ void bind_with_pybind(pybind11::module& module)
     detail::add_ctor(c);
 
     // add data fields
-    detail::visit(
-            detail::makeDefFieldsVisitor(c, module, all_types),
-            Class::Meta::fields());
+    detail::visit(detail::makeDefFieldsVisitor(c, module, all_types),
+                  Class::Meta::fields());
 
     // add methods
-    detail::visit(
-            detail::makeDefMethodsVisitor(c, module, all_types),
-            Class::Meta::methods());
+    detail::visit(detail::makeDefMethodsVisitor(c, module, all_types),
+                  Class::Meta::methods());
+
+    return c;
 }
 
 }  // namespace reflect_lib
