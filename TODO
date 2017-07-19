@@ -50,6 +50,7 @@
         --> default is unique_ptr, cf. pybind11.h
     [x] maybe circumvent by wrapping std::vector<int> in some custom type
     * issue resolved by specifying right holder type for std::vector
+[ ] unit tests for name mangling routines
 
 [ ] check https://github.com/RosettaCommons/binder
 
