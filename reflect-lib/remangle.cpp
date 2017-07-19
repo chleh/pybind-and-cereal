@@ -81,16 +81,16 @@ std::string mangle(std::string s)
     return s;
 }
 
-std::string demangle2(std::string name)
+std::string demangle2(std::string mangled_name)
 {
     std::string repl;
 
-    for (auto pos = name.find('_'); pos != name.npos; pos = name.find('_', pos)) {
-        if (pos == name.length() - 1) break;
+    for (auto pos = mangled_name.find('_'); pos != mangled_name.npos; pos = mangled_name.find('_', pos)) {
+        if (pos == mangled_name.length() - 1) break;
 
-        switch (name[pos+1]) {
+        switch (mangled_name[pos+1]) {
             case '_':
-                name.erase(pos, 1);
+                mangled_name.erase(pos, 1);
                 pos++;
                 continue;
             case 'A':
@@ -134,11 +134,35 @@ std::string demangle2(std::string name)
                 break;
         }
 
-        name.replace(pos, 2, repl);
+        mangled_name.replace(pos, 2, repl);
         ++pos;
     }
     
-    return name;
+    return mangled_name;
+}
+
+std::string strip_namespaces(std::string name)
+{
+    std::string::size_type scope_pos = name.find("::");
+    if (scope_pos == name.npos)
+        return name;
+
+    std::string::size_type last_pos = name.find_first_of("&, <>()[]*");
+    if (last_pos == name.npos)
+        last_pos = name.length();
+
+    while (scope_pos < last_pos) {
+        auto const new_pos = name.find("::", scope_pos + 2);
+        if (new_pos != name.npos)
+            scope_pos = new_pos;
+        else
+            break;
+    }
+
+    if (scope_pos == name.npos)
+        return name;
+
+    return name.substr(scope_pos + 2);
 }
 
 }  // namespace reflect_lib
