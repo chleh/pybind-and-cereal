@@ -1,5 +1,5 @@
 import unittest
-import bindings as tp
+import types_one as tp
 
 class TestDerived1(unittest.TestCase):
     def setUp(self):

@@ -1,6 +1,6 @@
 
-pybind11_add_module(bindings bindings.cpp)
-target_link_libraries(bindings PRIVATE reflection)
+pybind11_add_module(types_one types_one.cpp)
+target_link_libraries(types_one PRIVATE reflection)
 
 macro(add_py_test test_name)
     add_test(NAME "py_${test_name}"
@@ -14,4 +14,3 @@ add_py_test(test_moveonly)
 add_py_test(test_unique_ptr)
 add_py_test(test_vector)
 add_py_test(test_smart_ptr)
-

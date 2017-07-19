@@ -2,7 +2,7 @@
 
 #include "test/types/types_one/types_one.h"
 
-PYBIND11_MODULE(bindings, m) {
+PYBIND11_MODULE(types_one, m) {
     using namespace reflect_lib;
 
     bind_with_pybind<types_one::Base>(m);

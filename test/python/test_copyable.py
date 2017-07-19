@@ -1,5 +1,5 @@
 import unittest
-import bindings as tp
+import types_one as tp
 
 class TestCopyable(unittest.TestCase):
     def test_copy_construction(self):

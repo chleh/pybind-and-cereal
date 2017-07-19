@@ -1,5 +1,5 @@
 import unittest
-import bindings as tp
+import types_one as tp
 
 class TestUniquePtr(unittest.TestCase):
     def test_unique_ptr_return(self):
