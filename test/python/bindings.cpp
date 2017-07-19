@@ -1,6 +1,6 @@
 #include "reflect-lib/pybind.h"
 
-#include "test/types/test_types.h"
+#include "test/types/types_one/types_one.h"
 
 PYBIND11_MODULE(bindings, m) {
     using namespace reflect_lib;

@@ -1,7 +1,8 @@
 #include "reflect-lib/cereal.h"
 
-#include "test/types/test_types.h"
+#include "test/types/types_one/types_one.h"
 
+// TODO find proper solution for double defines
 #if 0
 namespace types_one
 {

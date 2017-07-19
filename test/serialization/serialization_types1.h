@@ -1,6 +1,6 @@
 #include "reflect-lib/cereal.h"
 
-#include "test/types/test_types.h"
+#include "test/types/types_one/types_one.h"
 
 namespace types_one
 {
