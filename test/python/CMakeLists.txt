@@ -14,3 +14,6 @@ add_py_test(test_moveonly)
 add_py_test(test_unique_ptr)
 add_py_test(test_vector)
 add_py_test(test_smart_ptr)
+
+# TODO auto-add tests by file glob
+add_py_test(test_misc)
