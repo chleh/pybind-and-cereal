@@ -46,25 +46,27 @@ void visit(Visitor&& v, std::tuple<Ts...>&& t)
 }
 
 // derived class
-template<typename Class>
-decltype(auto)
-bind_class(pybind11::module& module, std::false_type)
+template <typename Class>
+decltype(auto) bind_class(pybind11::module& module, std::false_type)
 {
-    return pybind11::class_<Class,
-           typename Class::Meta::base,
-           smart_ptr<Class>
-               >(module, remangle(Class::Meta::mangled_name()).c_str());
+    return pybind11::class_<Class, typename Class::Meta::base,
+                            smart_ptr<Class>>(
+        module,
+        // TODO maybe stripping namespaces is too simplistic in general
+        mangle(strip_namespaces(demangle(Class::Meta::mangled_name())))
+            .c_str());
 }
 
 // not derived class
-template<typename Class>
-decltype(auto)
-bind_class(pybind11::module& module, std::true_type)
+template <typename Class>
+decltype(auto) bind_class(pybind11::module& module, std::true_type)
 {
-    return pybind11::class_<Class,
-           smart_ptr<Class>>(module, remangle(Class::Meta::mangled_name()).c_str());
+    return pybind11::class_<Class, smart_ptr<Class>>(
+        module,
+        // TODO maybe stripping namespaces is too simplistic in general
+        mangle(strip_namespaces(demangle(Class::Meta::mangled_name())))
+            .c_str());
 }
-
 
 template <class Class, class... Cs>
 decltype(auto)
@@ -392,7 +394,8 @@ decltype(auto) bind_with_pybind(pybind11::module& module)
         module, std::is_same<typename Class::Meta::base, void>{});
 
     // register in type list
-    auto const name = demangle(Class::Meta::mangled_name());
+    // TODO maybe stripping namespaces is too simplistic in general
+    auto const name = strip_namespaces(demangle(Class::Meta::mangled_name()));
     all_types[name.c_str()] = c;
 
     // add constructor
