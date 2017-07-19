@@ -5,6 +5,8 @@
 
 #include <iostream>
 
+namespace types_one
+{
 struct NoCopy
 {
     NoCopy() = default;
@@ -107,3 +109,4 @@ struct VectorTest
     REFLECT((VectorTest), FIELDS(a, b), METHODS(get, set, set_ref))
 };
 
+}  // namespace types_one

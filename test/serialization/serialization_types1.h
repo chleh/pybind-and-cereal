@@ -1,8 +1,16 @@
 #include "reflect-lib/cereal.h"
 
-#include "test/test_types.h"
+#include "test/types/test_types.h"
 
-REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION((Derived1), (Base))
-REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION((Derived2), (Base))
+namespace types_one
+{
+DEFINE_CEREAL_SAVE_LOAD_FUNCTIONS
+}  // namespace types_one
 
-REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION((Derived3<int, double>), (Base))
+REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION((types_one::Derived1),
+                                            (types_one::Base))
+REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION((types_one::Derived2),
+                                            (types_one::Base))
+
+REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION((types_one::Derived3<int, double>),
+                                            (types_one::Base))
