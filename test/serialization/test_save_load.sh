@@ -10,6 +10,6 @@
 # subsequently new derived types have been introduced
 # into the program.
 
-set -e
+set -e -x
 ./test_save
 ./test_load

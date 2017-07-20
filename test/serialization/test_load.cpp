@@ -28,16 +28,17 @@ int main()
 
     std::cout << typeid(*b).name() << '\n';
 
-    types_one::Derived1* d1;
+    types_one::types_one_a::types_one_a_a::Derived1* d1;
     // assert(typeid(*b) == typeid(*d1));
-    d1 = dynamic_cast<types_one::Derived1*>(b.get());
+    d1 =
+        dynamic_cast<types_one::types_one_a::types_one_a_a::Derived1*>(b.get());
     assert(d1 != nullptr);
     assert(d1->i == 10);
     assert(d1->d == 3.14);
     assert(d1->s == "hello");
 
-    types_one::Derived3<int, double>* d3;
-    d3 = dynamic_cast<types_one::Derived3<int, double>*>(b3.get());
+    types_one::types_one_b::Derived3<int, double>* d3;
+    d3 = dynamic_cast<types_one::types_one_b::Derived3<int, double>*>(b3.get());
     assert(d3 != nullptr);
 
     return 0;

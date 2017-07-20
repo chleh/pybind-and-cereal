@@ -1,21 +1,19 @@
 #include <iostream>
 #include <fstream>
-#include <cassert>
-#include <typeinfo>
 
 #include "serialization_types1.h"
 
-
 int main()
 {
-    auto d1 = std::make_unique<types_one::Derived1>();
+    auto d1 =
+        std::make_unique<types_one::types_one_a::types_one_a_a::Derived1>();
     d1->i = 10;
     d1->d = 3.14;
     d1->s = "hello";
 
     std::unique_ptr<types_one::Base> b = std::move(d1);
 
-    auto d3 = std::make_unique<types_one::Derived3<int, double>>();
+    auto d3 = std::make_unique<types_one::types_one_b::Derived3<int, double>>();
     d3->i = 9;
     d3->t = 42;
     d3->u = 2.5;
