@@ -67,23 +67,24 @@ struct Type {
 #define REFLECT_DERIVED(...) \
     REFLECT_DERIVED_IMPL(__VA_ARGS__)
 
-#define REFLECT_DERIVED_IMPL(CLASS, BASE, FIELDS_TAG_, FIELDS, METHODS_TAG_, METHODS) \
-    static_assert(FIELDS_TAG_ == FIELDS_TAG, "Error wrong fields tag"); \
-    static_assert(METHODS_TAG_ == METHODS_TAG, "Error wrong methods tag"); \
-    struct Meta { \
-        using base = EXPAND(BASE); \
-        /* static_assert(std::is_base_of<base, EXPAND(CLASS)>::value, */ \
-                /* "Error: base is not base class!"); */ \
-        static decltype(auto) mangled_name() { return typeid(EXPAND(CLASS)).name(); } \
-        static constexpr decltype(auto) fields() \
-        { \
-            return std::make_tuple(GET_NAMES_POINTERS_TO_MEMBERS(CLASS, FIELDS)); \
-        } \
-        static constexpr decltype(auto) methods() \
-        { \
-            return std::make_tuple(GET_NAMES_POINTERS_TO_MEMBERS(CLASS, METHODS)); \
-        } \
+#define REFLECT_DERIVED_IMPL(CLASS, BASE, FIELDS_TAG_, FIELDS, METHODS_TAG_, \
+                             METHODS)                                        \
+    static_assert(FIELDS_TAG_ == FIELDS_TAG, "Error wrong fields tag");      \
+    static_assert(METHODS_TAG_ == METHODS_TAG, "Error wrong methods tag");   \
+    struct Meta {                                                            \
+        using base = EXPAND(BASE);                                           \
+        static decltype(auto) mangled_name()                                 \
+        {                                                                    \
+            return typeid(EXPAND(CLASS)).name();                             \
+        }                                                                    \
+        static constexpr decltype(auto) fields()                             \
+        {                                                                    \
+            return std::make_tuple(                                          \
+                GET_NAMES_POINTERS_TO_MEMBERS(CLASS, FIELDS));               \
+        }                                                                    \
+        static constexpr decltype(auto) methods()                            \
+        {                                                                    \
+            return std::make_tuple(                                          \
+                GET_NAMES_POINTERS_TO_MEMBERS(CLASS, METHODS));              \
+        }                                                                    \
     };
-
-
-
