@@ -1,47 +1,55 @@
 #pragma once
 
-#include <type_traits>
-
 #include <cereal/archives/xml.hpp>
 #include <cereal/types/polymorphic.hpp>
 
 #include "cereal-impl.h"
-#include "reflect-macros.h"
 
-#define REGISTER_POLYMORPHIC_TYPE_FOR_SERIALIZATION(CLASS, BASE) \
-    APPLY(CEREAL_REGISTER_TYPE, EXPAND(CLASS)); \
-    OVERRIDE_CEREAL_REGISTER_POLYMORPHIC_RELATION(BASE, CLASS)
+#define REGISTER_TYPE_FOR_SERIALIZATION(...)                             \
+    static_assert(std::is_same<__VA_ARGS__::Meta::base, void>::value,    \
+                  "This macro is intended for non-derived types only."); \
+    DEFINE_CEREAL_SAVE_LOAD_FUNCTIONS(__VA_ARGS__)
 
-#define OVERRIDE_CEREAL_REGISTER_POLYMORPHIC_RELATION(Base, Derived)          \
-    namespace cereal                                                          \
-    {                                                                         \
-    namespace detail                                                          \
-    {                                                                         \
-    template <>                                                               \
-    struct PolymorphicRelation<EXPAND(Base), EXPAND(Derived)> {               \
-        static void bind()                                                    \
-        {                                                                     \
-            RegisterPolymorphicCaster<EXPAND(Base), EXPAND(Derived)>::bind(); \
-        }                                                                     \
-    };                                                                        \
-    }                                                                         \
+#define REGISTER_DERIVED_TYPE_FOR_SERIALIZATION(...)                    \
+    static_assert(!std::is_same<__VA_ARGS__::Meta::base, void>::value,  \
+                  "This macro is intended for derived types only.");    \
+    CEREAL_REGISTER_TYPE(__VA_ARGS__)                                   \
+                                                                        \
+    /* Adapted from cereal library. See types/polymorphic.hpp there. */ \
+    namespace cereal                                                    \
+    {                                                                   \
+    namespace detail                                                    \
+    {                                                                   \
+    template <>                                                         \
+    struct PolymorphicRelation<__VA_ARGS__::Meta::base, __VA_ARGS__> {  \
+        static void bind()                                              \
+        {                                                               \
+            RegisterPolymorphicCaster<__VA_ARGS__::Meta::base,          \
+                                      __VA_ARGS__>::bind();             \
+        }                                                               \
+    };                                                                  \
+    }                                                                   \
     } /* end namespaces */
 
-// Must be used exactly once in every namespace containing types
-// to be serialized.
-#define DEFINE_CEREAL_SAVE_LOAD_FUNCTIONS                               \
-    template <class Archive, class Object>                              \
-    void CEREAL_SAVE_FUNCTION_NAME(Archive& archive, Object const& obj) \
-    {                                                                   \
-        reflect_lib::detail::save_impl(                                 \
-            archive, obj, Object::Meta::fields(),                       \
-            std::is_same<typename Object::Meta::base, void>{});         \
-    }                                                                   \
-                                                                        \
-    template <class Archive, class Object>                              \
-    void CEREAL_LOAD_FUNCTION_NAME(Archive& archive, Object& obj)       \
-    {                                                                   \
-        reflect_lib::detail::load_impl(                                 \
-            archive, obj, Object::Meta::fields(),                       \
-            std::is_same<typename Object::Meta::base, void>{});         \
-    }
+// TODO why not needed for derived types?
+// TODO move to impl file
+#define DEFINE_CEREAL_SAVE_LOAD_FUNCTIONS(...)                               \
+    namespace cereal                                                         \
+    {                                                                        \
+    template <class Archive>                                                 \
+    void CEREAL_SAVE_FUNCTION_NAME(Archive& archive, __VA_ARGS__ const& obj) \
+    {                                                                        \
+        reflect_lib::detail::save_impl(                                      \
+            archive, obj, __VA_ARGS__::Meta::fields(),                       \
+            std::is_same<typename __VA_ARGS__::Meta::base, void>{});         \
+    }                                                                        \
+                                                                             \
+    template <class Archive>                                                 \
+    void CEREAL_LOAD_FUNCTION_NAME(Archive& archive, __VA_ARGS__& obj)       \
+    {                                                                        \
+        reflect_lib::detail::load_impl(                                      \
+            archive, obj, __VA_ARGS__::Meta::fields(),                       \
+            std::is_same<typename __VA_ARGS__::Meta::base, void>{});         \
+    }                                                                        \
+                                                                             \
+    }  // namespace cereal
