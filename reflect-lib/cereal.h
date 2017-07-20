@@ -29,27 +29,5 @@
         }                                                               \
     };                                                                  \
     }                                                                   \
-    } /* end namespaces */
-
-// TODO why not needed for derived types?
-// TODO move to impl file
-#define DEFINE_CEREAL_SAVE_LOAD_FUNCTIONS(...)                               \
-    namespace cereal                                                         \
-    {                                                                        \
-    template <class Archive>                                                 \
-    void CEREAL_SAVE_FUNCTION_NAME(Archive& archive, __VA_ARGS__ const& obj) \
-    {                                                                        \
-        reflect_lib::detail::save_impl(                                      \
-            archive, obj, __VA_ARGS__::Meta::fields(),                       \
-            std::is_same<typename __VA_ARGS__::Meta::base, void>{});         \
-    }                                                                        \
-                                                                             \
-    template <class Archive>                                                 \
-    void CEREAL_LOAD_FUNCTION_NAME(Archive& archive, __VA_ARGS__& obj)       \
-    {                                                                        \
-        reflect_lib::detail::load_impl(                                      \
-            archive, obj, __VA_ARGS__::Meta::fields(),                       \
-            std::is_same<typename __VA_ARGS__::Meta::base, void>{});         \
-    }                                                                        \
-                                                                             \
-    }  // namespace cereal
+    } /* end namespaces */                                              \
+    DEFINE_CEREAL_SAVE_LOAD_FUNCTIONS(__VA_ARGS__)

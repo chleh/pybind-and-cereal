@@ -4,7 +4,7 @@
 #include <utility>
 
 #include <cereal/types/base_class.hpp>
-#include <cereal/types/vector.hpp> // TODO also add other
+#include <cereal/types/vector.hpp>  // TODO also add other
 
 namespace reflect_lib
 {
@@ -102,3 +102,29 @@ void load_impl(Archive& archive,
 
 }  // namespace detail
 }  // namespace reflect_lib
+
+// internal macro, not intended for direct use
+#define DEFINE_CEREAL_SAVE_LOAD_FUNCTIONS(...)                               \
+    namespace cereal                                                         \
+    {                                                                        \
+    template <class Archive>                                                 \
+    void CEREAL_SAVE_FUNCTION_NAME(Archive& archive, __VA_ARGS__ const& obj) \
+    {                                                                        \
+        reflect_lib::detail::save_impl(                                      \
+            archive,                                                         \
+            obj,                                                             \
+            __VA_ARGS__::Meta::fields(),                                     \
+            std::is_same<typename __VA_ARGS__::Meta::base, void>{});         \
+    }                                                                        \
+                                                                             \
+    template <class Archive>                                                 \
+    void CEREAL_LOAD_FUNCTION_NAME(Archive& archive, __VA_ARGS__& obj)       \
+    {                                                                        \
+        reflect_lib::detail::load_impl(                                      \
+            archive,                                                         \
+            obj,                                                             \
+            __VA_ARGS__::Meta::fields(),                                     \
+            std::is_same<typename __VA_ARGS__::Meta::base, void>{});         \
+    }                                                                        \
+                                                                             \
+    }  // namespace cereal
