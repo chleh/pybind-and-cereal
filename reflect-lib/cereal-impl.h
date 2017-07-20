@@ -26,6 +26,8 @@ void save_impl_derived(Archive& archive,
                        std::tuple<Pairs...>&& fields,
                        std::index_sequence<Idcs...>)
 {
+    static_assert(std::is_base_of<typename Object::Meta::base, Object>::value,
+                  "The current class is not derived from the specified base.");
     archive(cereal::base_class<typename Object::Meta::base>(&obj),
             cereal::make_nvp(std::get<Idcs>(fields).first,
                              obj.*std::get<Idcs>(fields).second)...);
@@ -69,6 +71,8 @@ void load_impl_derived(Archive& archive,
                        std::tuple<Pairs...>&& fields,
                        std::index_sequence<Idcs...>)
 {
+    static_assert(std::is_base_of<typename Object::Meta::base, Object>::value,
+                  "The current class is not derived from the specified base.");
     archive(cereal::base_class<typename Object::Meta::base>(&obj),
             cereal::make_nvp(std::get<Idcs>(fields).first,
                              obj.*std::get<Idcs>(fields).second)...);
