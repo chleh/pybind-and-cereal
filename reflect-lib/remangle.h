@@ -18,4 +18,10 @@ inline std::string remangle(const char* mangled_name) {
 
 std::string strip_namespaces(std::string name);
 
+std::string strip_outermost_namespace(std::string name);
+
+bool is_scoped(std::string const& name);
+
+std::string get_namespaces(std::string const& name);
+
 }  // namespace reflect_lib

@@ -22,7 +22,6 @@ namespace reflect_lib
 
 namespace detail
 {
-
 struct NoOp
 {
     template<typename... Ts>
@@ -52,7 +51,6 @@ decltype(auto) bind_class(pybind11::module& module, std::false_type)
     return pybind11::class_<Class, typename Class::Meta::base,
                             smart_ptr<Class>>(
         module,
-        // TODO maybe stripping namespaces is too simplistic in general
         mangle(strip_namespaces(demangle(Class::Meta::mangled_name())))
             .c_str());
 }
@@ -63,7 +61,6 @@ decltype(auto) bind_class(pybind11::module& module, std::true_type)
 {
     return pybind11::class_<Class, smart_ptr<Class>>(
         module,
-        // TODO maybe stripping namespaces is too simplistic in general
         mangle(strip_namespaces(demangle(Class::Meta::mangled_name())))
             .c_str());
 }
@@ -380,36 +377,53 @@ DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
 
 }  // namespace detail
 
-template <typename Class>
-decltype(auto) bind_with_pybind(pybind11::module& module)
-{
-    if (!pybind11::hasattr(module, "all_types")) {
-        module.add_object("all_types", pybind11::dict{});
+struct Module {
+    explicit Module(pybind11::module module_) : module(module_)
+    {
+        if (!pybind11::hasattr(module, "all_types")) {
+            module.add_object("all_types", pybind11::dict{});
+        }
+        all_types =
+            pybind11::getattr(module, "all_types").cast<pybind11::dict>();
     }
-    auto all_types =
-        pybind11::getattr(module, "all_types").cast<pybind11::dict>();
 
-    // create class
-    auto c = detail::bind_class<Class>(
-        module, std::is_same<typename Class::Meta::base, void>{});
+    template <typename Class>
+    decltype(auto) bind()
+    {
+        // create class
+        auto c = detail::bind_class<Class>(
+            module, std::is_same<typename Class::Meta::base, void>{});
 
-    // register in type list
-    // TODO maybe stripping namespaces is too simplistic in general
-    auto const name = strip_namespaces(demangle(Class::Meta::mangled_name()));
-    all_types[name.c_str()] = c;
+        // register in type list
+        auto const full_name = demangle(Class::Meta::mangled_name());
+        auto const name = strip_namespaces(full_name);
+        all_types[name.c_str()] = c;
+        if (!namespace_name) {
+            namespace_name.reset(new std::string(get_namespaces(full_name)));
+        } else if (*namespace_name != get_namespaces(full_name)) {
+            throw pybind11::type_error(
+                "For consistence between python modules and C++ namespaces "
+                "inside one module only types from one namespace are allowed. "
+                "Until now types from two C++ namespaces have been introduced "
+                "into this module, namely `" +
+                *namespace_name + "' and `" + get_namespaces(full_name) + "'.");
+        }
 
-    // add constructor
-    detail::add_ctor(c);
+        // add constructor
+        detail::add_ctor(c);
 
-    // add data fields
-    detail::visit(detail::makeDefFieldsVisitor(c, module, all_types),
-                  Class::Meta::fields());
+        // add data fields
+        detail::visit(detail::makeDefFieldsVisitor(c, module, all_types),
+                      Class::Meta::fields());
 
-    // add methods
-    detail::visit(detail::makeDefMethodsVisitor(c, module, all_types),
-                  Class::Meta::methods());
+        // add methods
+        detail::visit(detail::makeDefMethodsVisitor(c, module, all_types),
+                      Class::Meta::methods());
+    }
 
-    return c;
-}
+    pybind11::module module;
+    pybind11::dict all_types;
+    std::unique_ptr<std::string> namespace_name;
+};
 
 }  // namespace reflect_lib

@@ -5,6 +5,29 @@
 
 #include "remangle.h"
 
+namespace
+{
+std::string::size_type get_outermost_scope_pos(std::string const& name)
+{
+    auto const scope_pos = name.find("::");
+    if (scope_pos == name.npos)
+        // no scope :: in name
+        return name.npos;
+
+    auto last_pos = name.find_first_of("&, <>()[]*");
+    if (last_pos == name.npos)
+        last_pos = name.length();
+
+    // scope only in template parameters
+    if (last_pos < scope_pos)
+        return name.npos;
+
+    return scope_pos;
+}
+
+}  // namespace
+
+
 namespace reflect_lib
 {
 
@@ -163,6 +186,36 @@ std::string strip_namespaces(std::string name)
         return name;
 
     return name.substr(scope_pos + 2);
+}
+
+std::string strip_outermost_namespace(std::string name)
+{
+    auto const scope_pos = get_outermost_scope_pos(name);
+
+    // not scoped
+    if (scope_pos == name.npos)
+        return name;
+
+    return name.substr(scope_pos + 2);
+}
+
+bool is_scoped(const std::string& name)
+{
+    return get_outermost_scope_pos(name) != name.npos;
+}
+
+std::string get_namespaces(const std::string& name)
+{
+    auto const last_pos =  name.find_first_of("&, <>()[]*");
+
+    auto const pos = name.rfind("::", last_pos);
+    if (pos == name.npos) {
+        // :: not found
+        return name.substr(0, last_pos);
+    }
+
+    // :: found
+    return name.substr(0, pos);
 }
 
 }  // namespace reflect_lib
