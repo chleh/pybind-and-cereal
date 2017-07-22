@@ -21,7 +21,7 @@
 [v] http://www.boost.org/doc/libs/master/libs/core/doc/html/core/demangle.html
 [ ] multiple inheritance
 [ ] refactoring:
-    [ ] namespaces
+    [v] namespaces
     [v] split tests
     [ ] more tests (pybind and serialization)
     [ ] rename macros
@@ -30,7 +30,7 @@
         [/] write smart_ptr tests
     [ ] clean up includes
 [v] function overloads (e.g., for assigning nullptr to unique_ptr)
-[ ] python submodules
+[v] python submodules
 [ ] test inheritance in python
 [ ] compilation speed
 [ ] check return policy for pointers, l-value refs, rvalues
@@ -51,8 +51,7 @@
     [x] maybe circumvent by wrapping std::vector<int> in some custom type
     * issue resolved by specifying right holder type for std::vector
 [ ] unit tests for name mangling routines
-
-[ ] check https://github.com/RosettaCommons/binder
+[ ] split python bindings for one module to multiple compilation units
 
 
 Non-Features

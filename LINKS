@@ -1,0 +1,15 @@
+
+Auto-generate Python bindings:
+* https://pythonhosted.org/PyBindGen/tutorial.html
+* https://github.com/RosettaCommons/binder https://github.com/pybind/pybind11/issues/553
+* https://github.com/pybind/pybind11/issues/252
+* http://pypp11.readthedocs.io/en/latest/quotes.html
+* https://pypi.python.org/pypi/PyBindGen
+* https://github.com/pybee-attic/seasnake
+
+* Compilation pybind11 vs. SWIG https://community.lsst.org/t/using-pybind11-instead-of-swig-to-wrap-c-code/1096
+
+* Speedup python numerics https://github.com/wolfv/pyjet
+
+* External pybind11 documentation: https://developer.lsst.io/v/DM-9089/coding/python_wrappers_for_cpp_with_pybind11.html
+
