@@ -133,11 +133,14 @@ struct TypeFeatures
           is_copy_assignable, is_move_assignable>;
 };
 
-template<typename T> void add_aux_type(T, pybind11::module& m, pybind11::dict&) {}
+template <typename T>
+void add_aux_type_impl(T, pybind11::module&, pybind11::dict&)
+{
+}
 
 // TODO: std::map, std::set, std::list, std::...
 template <typename VecElem, typename VecAlloc>
-void add_aux_type(Type<std::vector<VecElem, VecAlloc>>,
+void add_aux_type_impl(Type<std::vector<VecElem, VecAlloc>>,
         pybind11::module& m,
         pybind11::dict& all_types)
 {
@@ -151,6 +154,17 @@ void add_aux_type(Type<std::vector<VecElem, VecAlloc>>,
         auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
                 m, mangle(vec_type_name), pybind11::buffer_protocol());
         all_types[vec_type_name.c_str()] = vec_c;
+    }
+}
+
+template <typename T>
+void add_aux_type(T t, pybind11::module& m, pybind11::dict& all_types)
+{
+    // TODO proper fix for this doubly-registered type error workaround
+    try {
+        add_aux_type_impl(t, m, all_types);
+    } catch (std::runtime_error /*e*/) {
+        // std::cerr << "ERROR: " << e.what() << '\n';
     }
 }
 
@@ -377,8 +391,16 @@ DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
 
 }  // namespace detail
 
+#define CONCAT(a, b) CONCAT_(a, b)
+#define CONCAT_(a, b) a ## b
+
+#define REFLECT_LIB_PYTHON_MODULE(name, variable)                     \
+    APPLY(PYBIND11_MODULE,                                            \
+          CONCAT(REFLECT_LIB_PYTHON_MODULE_NAME_PREFIX, name), \
+          variable)
+
 struct Module {
-    explicit Module(pybind11::module module_) : module(module_)
+    explicit Module(pybind11::module& module_) : module(module_)
     {
         if (!pybind11::hasattr(module, "all_types")) {
             module.add_object("all_types", pybind11::dict{});
@@ -419,9 +441,11 @@ struct Module {
         // add methods
         detail::visit(detail::makeDefMethodsVisitor(c, module, all_types),
                       Class::Meta::methods());
+
+        return c;
     }
 
-    pybind11::module module;
+    pybind11::module& module;
     pybind11::dict all_types;
     std::unique_ptr<std::string> namespace_name;
 };
