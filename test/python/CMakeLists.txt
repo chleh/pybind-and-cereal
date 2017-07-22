@@ -1,11 +1,11 @@
+include("${REFLECT_LIB_SOURCE_ROOT}/cmake/python_bindings.cmake")
 
-pybind11_add_module(types_one types_one.cpp)
-target_link_libraries(types_one PRIVATE reflection)
+add_subdirectory(bindings)
 
 macro(add_py_test test_name)
     add_test(NAME "py_${test_name}"
         COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/${test_name}.py"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bindings")
 endmacro()
 
 add_py_test(test_copyable)
