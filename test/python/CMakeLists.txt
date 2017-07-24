@@ -4,7 +4,9 @@ add_subdirectory(bindings)
 
 macro(add_py_test test_name)
     add_test(NAME "py_${test_name}"
-        COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/${test_name}.py"
+        # TODO search for shell, maybe append to PYTHONPATH from environment
+        COMMAND /bin/sh -c "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}/bindings"
+            ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/${test_name}.py"
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bindings")
 endmacro()
 
