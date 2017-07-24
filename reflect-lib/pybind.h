@@ -48,6 +48,8 @@ void visit(Visitor&& v, std::tuple<Ts...>&& t)
 template <typename Class>
 decltype(auto) bind_class(pybind11::module& module, std::false_type)
 {
+    static_assert(std::is_base_of<typename Class::Meta::base, Class>::value,
+                  "The current class is not derived from the specified base.");
     return pybind11::class_<Class, typename Class::Meta::base,
                             smart_ptr<Class>>(
         module,
@@ -430,6 +432,8 @@ struct Module {
                 "into this module, namely `" +
                 *namespace_name + "' and `" + get_namespaces(full_name) + "'.");
         }
+        // for debugging only
+        // std::cout << "binding " << full_name << "\n";
 
         // add constructor
         detail::add_ctor(c);
