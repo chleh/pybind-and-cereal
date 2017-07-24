@@ -1,0 +1,15 @@
+Language:        Cpp
+BasedOnStyle:    Google
+
+AccessModifierOffset: -4
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+BreakBeforeBraces: Allman
+DerivePointerAlignment: false
+ExperimentalAutoDetectBinPacking: true
+IndentWidth:     4
+PointerAlignment: Left
+Standard:        C++14
+TabWidth:        4
+UseTab:          Never
