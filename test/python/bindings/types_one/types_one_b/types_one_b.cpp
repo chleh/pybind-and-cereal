@@ -8,4 +8,8 @@ REFLECT_LIB_PYTHON_MODULE(types_one__types_one_b, module)
 
     m.bind<types_one::types_one_b::Derived3<int, int>>();
     m.bind<types_one::types_one_b::Derived3<int, double>>();
+
+    // import necessary because of cross-module inheritance
+    pybind11::module::import("types_one.types_one_a");
+    m.bind<types_one::types_one_b::NoCopyDerived>();
 }

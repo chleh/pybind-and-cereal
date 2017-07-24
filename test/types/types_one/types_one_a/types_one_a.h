@@ -17,10 +17,13 @@ struct NoCopy
     NoCopy& operator=(NoCopy&&) = default;
     NoCopy& operator=(NoCopy const&) = delete;
 
+    virtual std::string m() const { return "NoCopy"; }
+    virtual std::string n() const { return "NoCopy"; }
+
     int i = 10;
     std::string s;
 
-    REFLECT((NoCopy), FIELDS(i, s), METHODS())
+    REFLECT((NoCopy), FIELDS(i, s), METHODS(m, n))
 };
 }  // namespace types_one_a
 }  // namespace types_one

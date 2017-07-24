@@ -46,5 +46,13 @@ struct Derived3 : Base {
                     METHODS(f))  // TODO g, h
 };
 
+struct NoCopyDerived : public types_one::types_one_a::NoCopy
+{
+    virtual std::string m() const override  { return "NoCopyDerived"; }
+
+    REFLECT_DERIVED((NoCopyDerived), (types_one::types_one_a::NoCopy), FIELDS(),
+                    METHODS())
+};
+
 }  // namespace types_one_b
 }  // namespace types_one
