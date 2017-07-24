@@ -51,7 +51,8 @@
     [x] maybe circumvent by wrapping std::vector<int> in some custom type
     * issue resolved by specifying right holder type for std::vector
 [ ] unit tests for name mangling routines
-[ ] split python bindings for one module to multiple compilation units
+[v] split python bindings for one module to multiple compilation units
+[ ] Add test: Derive a class in types_one_b from a base in types_one_a
 
 
 Non-Features
