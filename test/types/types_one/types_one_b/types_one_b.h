@@ -17,7 +17,7 @@ struct Derived3 : Base {
     std::vector<float> v;
     std::vector<float> w;
 
-    std::string what() override { return "der3"; };
+    std::string what() override { return "der3"; }
 
     // test unique_ptr methods
     // std::unique_ptr<Base> f(std::unique_ptr<int> const&) { return nullptr; }
