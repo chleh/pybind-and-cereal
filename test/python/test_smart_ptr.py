@@ -1,13 +1,13 @@
 import unittest
-import types_one as tp
+import types_one.types_one_a.types_one_a_a
 
 class TestSmartPtr(unittest.TestCase):
     def setUp(self):
-        self.d1 = tp.Derived1()
-        self.d2 = tp.Derived1()
+        self.d1 = types_one.types_one_a.types_one_a_a.Derived1()
+        self.d2 = types_one.types_one_a.types_one_a_a.Derived1()
 
     def test_move_nullptr(self):
-        self.d1.b__MOVE_IN = tp.Derived1()
+        self.d1.b__MOVE_IN = types_one.types_one_a.types_one_a_a.Derived1()
         self.assertIsNotNone(self.d1.b)
 
         self.assertIsNone(self.d2.b)
@@ -18,7 +18,7 @@ class TestSmartPtr(unittest.TestCase):
 
     def test_copy_nullptr(self):
         # TODO test non-copyable non-pointer member
-        self.d1.b__MOVE_IN = tp.Derived1()
+        self.d1.b__MOVE_IN = types_one.types_one_a.types_one_a_a.Derived1()
         self.assertIsNotNone(self.d1.b)
 
         self.assertIsNone(self.d2.b)

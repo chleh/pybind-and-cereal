@@ -1,12 +1,12 @@
 import unittest
-import types_one as tp
+import types_one.types_one_a.types_one_a_a
 
 class TestDerived1(unittest.TestCase):
     def setUp(self):
-        self.d1 = tp.Derived1()
+        self.d1 = types_one.types_one_a.types_one_a_a.Derived1()
 
     def test_all_types_in_module(self):
-        self.assertTrue("all_types" in dir(tp))
+        self.assertTrue("all_types" in dir(types_one.types_one_a.types_one_a_a))
 
     def test_member_string(self):
         self.d1.s = "d1"
@@ -21,7 +21,9 @@ class TestDerived1(unittest.TestCase):
         self.assertEqual(1, len(self.d1.v))
         self.assertEqual(1.0, self.d1.v[0])
 
-        v = tp.all_types["std::vector<float, std::allocator<float> >"]([1,2,3])
+        # TODO only on all_types dict for all modules
+        v = types_one.all_types[
+                "std::vector<float, std::allocator<float> >"]([1,2,3])
         self.d1.v = v  # copy assignment
         self.assertEqual(3, len(self.d1.v))
 
@@ -52,7 +54,7 @@ class TestDerived1(unittest.TestCase):
             a = self.d1.b__MOVE_IN
 
     def test_move_assignment(self):
-        tmp = tp.Derived1()
+        tmp = types_one.types_one_a.types_one_a_a.Derived1()
         tmp.s = "tmp"
 
         self.d1.b__MOVE_IN = tmp
@@ -61,12 +63,12 @@ class TestDerived1(unittest.TestCase):
         self.assertEqual("", tmp.s)
 
         ### unique_ptr holding non-copyable type
-        self.d1.ncp__MOVE_IN = tp.NoCopy()
+        self.d1.ncp__MOVE_IN = types_one.types_one_a.NoCopy()
         self.assertIsNotNone(self.d1.ncp)
 
         with self.assertRaises(TypeError):
             # incompatible types
-            self.d1.ncp__MOVE_IN = tp.Derived1()
+            self.d1.ncp__MOVE_IN = types_one.types_one_a.types_one_a_a.Derived1()
 
         self.assertIsNotNone(self.d1.ncp)
 
