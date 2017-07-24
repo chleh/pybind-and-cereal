@@ -10,12 +10,13 @@ macro(add_py_test test_name)
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bindings")
 endmacro()
 
-add_py_test(test_copyable)
-add_py_test(test_Derived1)
-add_py_test(test_moveonly)
-add_py_test(test_unique_ptr)
-add_py_test(test_vector)
-add_py_test(test_smart_ptr)
 
-# TODO auto-add tests by file glob
-add_py_test(test_misc)
+# From CMake documentation:
+# We do not recommend using GLOB to collect a list of source files from your
+# source tree. If no CMakeLists.txt file changes when a source is added or
+# removed then the generated build system cannot know when to ask CMake to
+# regenerate.
+file(GLOB py_tests LIST_DIRECTORIES false "test_*.py")
+foreach(test_name IN LISTS py_tests)
+    add_py_test("${test_name}")
+endforeach()
