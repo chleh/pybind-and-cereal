@@ -19,6 +19,7 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, reflect_lib::smart_ptr<T>)
 
 namespace reflect_lib
 {
+struct Module;
 
 namespace detail
 {
@@ -136,15 +137,15 @@ struct TypeFeatures
 };
 
 template <typename T>
-void add_aux_type_impl(T, pybind11::module&, pybind11::dict&)
+void add_aux_type_impl(T, pybind11::module& /*m*/,
+                       pybind11::dict& /*all_types*/)
 {
 }
 
 // TODO: std::map, std::set, std::list, std::...
 template <typename VecElem, typename VecAlloc>
 void add_aux_type_impl(Type<std::vector<VecElem, VecAlloc>>,
-        pybind11::module& m,
-        pybind11::dict& all_types)
+                       pybind11::module& m, pybind11::dict& all_types)
 {
     using Vec = std::vector<VecElem, VecAlloc>;
     auto const vec_type_name = demangle(typeid(Vec).name());
@@ -160,13 +161,27 @@ void add_aux_type_impl(Type<std::vector<VecElem, VecAlloc>>,
 }
 
 template <typename T>
-void add_aux_type(T t, pybind11::module& m, pybind11::dict& all_types)
+void add_aux_type(T t, Module& m)
 {
+    std::cout << "binding aux " << typeid(T).name() << '\n';
+
+    if (!m.aux_module) {
+        m.aux_module = pybind11::module::import("REFLECT_LIB_INTERNAL_AUX");
+
+        if (!pybind11::hasattr(m.aux_module, "aux_types")) {
+            m.aux_module.add_object("aux_types", pybind11::dict{});
+        }
+        m.aux_types = pybind11::getattr(m.aux_module, "aux_types")
+                          .template cast<pybind11::dict>();
+    }
+    add_aux_type_impl(t, m.aux_module, m.aux_types);
+
     // TODO proper fix for this doubly-registered type error workaround
     try {
-        add_aux_type_impl(t, m, all_types);
-    } catch (std::runtime_error /*e*/) {
-        // std::cerr << "ERROR: " << e.what() << '\n';
+        // TODO
+
+    } catch (std::runtime_error e) {
+        std::cerr << "ERROR: " << e.what() << '\n';
     }
 }
 
@@ -174,8 +189,7 @@ template<typename PybindClass>
 struct DefFieldsVisitor
 {
     PybindClass& c;
-    pybind11::module& m;
-    pybind11::dict& all_types;
+    reflect_lib::Module& module;
 
     template <typename MemberPtr>
     void operator()(std::pair<const char*, MemberPtr> const& name_member) const
@@ -270,7 +284,7 @@ private:
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<std::vector<VecElem, VecAlloc>> t) const
     {
-        add_aux_type(t, m, all_types);
+        add_aux_type(t, module);
         c.def_readwrite(name_member.first, name_member.second);
     }
 
@@ -329,8 +343,7 @@ template<typename PybindClass>
 struct DefMethodsVisitor
 {
     PybindClass& c;
-    pybind11::module& m;
-    pybind11::dict& all_types;
+    Module& module;
 
     template <typename MemberFctPtr>
     void operator()(std::pair<const char*, MemberFctPtr> const& name_member) const
@@ -359,7 +372,7 @@ private:
 
         // add auxiliary bindings
         visit([&](auto t) {
-                add_aux_type(t, m, all_types);
+                add_aux_type(t, module);
                 }, std::make_tuple(Type<typename std::decay<Res>::type>{},
                     Type<typename std::decay<Args>::type>{}...));
         c.def(name, member_ptr, policy);
@@ -373,7 +386,7 @@ private:
     {
         // add auxiliary bindings
         visit([&](auto t) {
-                add_aux_type(t, m, all_types);
+                add_aux_type(t, module);
                 }, std::make_tuple(Type<typename std::decay<UniqueT>::type>{},
                     Type<typename std::decay<Args>::type>{}...));
         auto f = [member_ptr](Class& c, Args... args) {
@@ -402,7 +415,7 @@ DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
           variable)
 
 struct Module {
-    explicit Module(pybind11::module& module_) : module(module_)
+    explicit Module(pybind11::module module_) : module(module_)
     {
         if (!pybind11::hasattr(module, "all_types")) {
             module.add_object("all_types", pybind11::dict{});
@@ -439,19 +452,21 @@ struct Module {
         detail::add_ctor(c);
 
         // add data fields
-        detail::visit(detail::makeDefFieldsVisitor(c, module, all_types),
+        detail::visit(detail::makeDefFieldsVisitor(c, *this),
                       Class::Meta::fields());
 
         // add methods
-        detail::visit(detail::makeDefMethodsVisitor(c, module, all_types),
+        detail::visit(detail::makeDefMethodsVisitor(c, *this),
                       Class::Meta::methods());
 
         return c;
     }
 
-    pybind11::module& module;
+    pybind11::module module;
     pybind11::dict all_types;
     std::unique_ptr<std::string> namespace_name;
+    pybind11::module aux_module;
+    pybind11::dict aux_types;
 };
 
 }  // namespace reflect_lib

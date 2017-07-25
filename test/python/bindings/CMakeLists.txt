@@ -1,1 +1,3 @@
 add_subdirectory(types_one)
+
+pybind11_add_module(REFLECT_LIB_INTERNAL_AUX REFLECT_LIB_INTERNAL_AUX.cpp)
