@@ -137,32 +137,30 @@ struct TypeFeatures
 };
 
 template <typename T>
-void add_aux_type_impl(T, pybind11::module& /*m*/,
-                       pybind11::dict& /*all_types*/)
+decltype(auto) add_aux_type_impl(T,
+                                 std::string const& /*mangled_type_name*/,
+                                 pybind11::module& /*m*/)
 {
+    return nullptr;
 }
 
 // TODO: std::map, std::set, std::list, std::...
 template <typename VecElem, typename VecAlloc>
-void add_aux_type_impl(Type<std::vector<VecElem, VecAlloc>>,
-                       pybind11::module& m, pybind11::dict& all_types)
+decltype(auto) add_aux_type_impl(Type<std::vector<VecElem, VecAlloc>>,
+                                 std::string const& mangled_type_name,
+                                 pybind11::module& m)
 {
     using Vec = std::vector<VecElem, VecAlloc>;
-    auto const vec_type_name = demangle(typeid(Vec).name());
-    // Check if the auxiliary std::vector binding already exists.
-    if (!all_types.contains(vec_type_name.c_str()))
-    {
-        // TODO this procedure might create lots of duplicate binding code in many
-        // different modules
-        auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                m, mangle(vec_type_name), pybind11::buffer_protocol());
-        all_types[vec_type_name.c_str()] = vec_c;
-    }
+    auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
+        m, mangled_type_name, pybind11::buffer_protocol());
+    return vec_c;
 }
 
 template <typename T>
-void add_aux_type(T t, Module& m)
+void add_aux_type(Type<T> t, Module& m)
 {
+    // TODO this procedure might create lots of duplicate binding code in many
+    // different modules
     std::cout << "binding aux " << typeid(T).name() << '\n';
 
     if (!m.aux_module) {
@@ -174,14 +172,24 @@ void add_aux_type(T t, Module& m)
         m.aux_types = pybind11::getattr(m.aux_module, "aux_types")
                           .template cast<pybind11::dict>();
     }
-    add_aux_type_impl(t, m.aux_module, m.aux_types);
 
-    // TODO proper fix for this doubly-registered type error workaround
-    try {
-        // TODO
+    auto const type_name = demangle(typeid(T).name());
+    auto const mangled_type_name = mangle(type_name);
 
-    } catch (std::runtime_error e) {
-        std::cerr << "ERROR: " << e.what() << '\n';
+    if (!pybind11::hasattr(m.aux_module, mangled_type_name.c_str())) {
+        auto const aux = add_aux_type_impl(t, mangled_type_name, m.aux_module);
+
+        if (aux) {
+            if (m.all_types.contains(type_name.c_str()))
+                throw std::logic_error(
+                    "Binding present in all_types, but not yet in aux module.");
+            if (m.aux_types.contains(type_name.c_str()))
+                throw std::logic_error(
+                    "Binding present in aux_types, but not yet in aux module.");
+
+            m.all_types[type_name.c_str()] = aux;
+            m.aux_types[type_name.c_str()] = aux;
+        }
     }
 }
 

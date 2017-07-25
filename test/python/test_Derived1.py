@@ -21,7 +21,7 @@ class TestDerived1(unittest.TestCase):
         self.assertEqual(1, len(self.d1.v))
         self.assertEqual(1.0, self.d1.v[0])
 
-        # TODO only on all_types dict for all modules
+        # TODO only one all_types dict for all modules
         v = types_one.all_types[
                 "std::vector<float, std::allocator<float> >"]([1,2,3])
         self.d1.v = v  # copy assignment
