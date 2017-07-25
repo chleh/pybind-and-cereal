@@ -10,6 +10,6 @@ DerivePointerAlignment: false
 ExperimentalAutoDetectBinPacking: true
 IndentWidth:     4
 PointerAlignment: Left
-Standard:        C++14
+Standard:        C++11
 TabWidth:        4
 UseTab:          Never
