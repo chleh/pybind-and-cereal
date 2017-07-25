@@ -15,7 +15,7 @@
 #include <iostream>
 
 // Why not unique_ptr? --> Because it has to be copyable.
-PYBIND11_DECLARE_HOLDER_TYPE(T, reflect_lib::smart_ptr<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, reflect_lib::smart_ptr<T>)
 
 namespace reflect_lib
 {
