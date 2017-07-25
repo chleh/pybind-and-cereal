@@ -163,8 +163,11 @@ void add_aux_type(Type<T> t, Module& m)
     // different modules
     std::cout << "binding aux " << typeid(T).name() << '\n';
 
+#define TO_STRING(s) TO_STRING_(s)
+#define TO_STRING_(s) #s
     if (!m.aux_module) {
-        m.aux_module = pybind11::module::import("REFLECT_LIB_INTERNAL_AUX");
+        m.aux_module = pybind11::module::import(
+            TO_STRING(REFLECT_LIB_PYTHON_MODULE_NAME_PREFIX) "__AUX");
 
         if (!pybind11::hasattr(m.aux_module, "aux_types")) {
             m.aux_module.add_object("aux_types", pybind11::dict{});
@@ -172,6 +175,8 @@ void add_aux_type(Type<T> t, Module& m)
         m.aux_types = pybind11::getattr(m.aux_module, "aux_types")
                           .template cast<pybind11::dict>();
     }
+#undef TO_STRING
+#undef TO_STRING_
 
     auto const type_name = demangle(typeid(T).name());
     auto const mangled_type_name = mangle(type_name);
@@ -414,13 +419,12 @@ DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
 
 }  // namespace detail
 
-#define CONCAT(a, b) CONCAT_(a, b)
-#define CONCAT_(a, b) a ## b
+#define CONCAT(a, b, c) CONCAT_(a, b, c)
+#define CONCAT_(a, b, c) a ## b ## c
 
-#define REFLECT_LIB_PYTHON_MODULE(name, variable)                     \
-    APPLY(PYBIND11_MODULE,                                            \
-          CONCAT(REFLECT_LIB_PYTHON_MODULE_NAME_PREFIX, name), \
-          variable)
+#define REFLECT_LIB_PYTHON_MODULE(name, variable) \
+    APPLY(PYBIND11_MODULE,                        \
+          CONCAT(REFLECT_LIB_PYTHON_MODULE_NAME_PREFIX, __, name), variable)
 
 struct Module {
     explicit Module(pybind11::module module_) : module(module_)
