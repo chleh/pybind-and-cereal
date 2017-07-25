@@ -19,7 +19,26 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, reflect_lib::smart_ptr<T>)
 
 namespace reflect_lib
 {
-struct Module;
+struct Module {
+    explicit Module(pybind11::module module_) : module(module_)
+    {
+        if (!pybind11::hasattr(module, "all_types")) {
+            module.add_object("all_types", pybind11::dict{});
+        }
+        all_types =
+            pybind11::getattr(module, "all_types").cast<pybind11::dict>();
+    }
+
+    template <typename Class>
+    pybind11::class_<Class> bind();
+
+    pybind11::module module;
+    pybind11::dict all_types;
+    std::unique_ptr<std::string> namespace_name;
+    pybind11::module aux_module;
+    pybind11::dict aux_types;
+};
+
 
 namespace detail
 {
@@ -416,66 +435,50 @@ DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
 
 }  // namespace detail
 
+
+template <typename Class>
+pybind11::class_<Class> Module::bind()
+{
+    // create class
+    auto c = detail::bind_class<Class>(
+        module, std::is_same<typename Class::Meta::base, void>{});
+
+    // register in type list
+    auto const full_name = demangle(Class::Meta::mangled_name());
+    auto const name = strip_namespaces(full_name);
+    all_types[name.c_str()] = c;
+    if (!namespace_name) {
+        namespace_name.reset(new std::string(get_namespaces(full_name)));
+    } else if (*namespace_name != get_namespaces(full_name)) {
+        throw pybind11::type_error(
+            "For consistence between python modules and C++ namespaces "
+            "inside one module only types from one namespace are allowed. "
+            "Until now types from two C++ namespaces have been introduced "
+            "into this module, namely `" +
+            *namespace_name + "' and `" + get_namespaces(full_name) + "'.");
+    }
+    // for debugging only
+    // std::cout << "binding " << full_name << "\n";
+
+    // add constructor
+    detail::add_ctor(c);
+
+    // add data fields
+    detail::visit(detail::makeDefFieldsVisitor(c, *this),
+                  Class::Meta::fields());
+
+    // add methods
+    detail::visit(detail::makeDefMethodsVisitor(c, *this),
+                  Class::Meta::methods());
+
+    return c;
+}
+
 #define CONCAT(a, b, c) CONCAT_(a, b, c)
 #define CONCAT_(a, b, c) a ## b ## c
 
 #define REFLECT_LIB_PYTHON_MODULE(name, variable) \
     APPLY(PYBIND11_MODULE,                        \
           CONCAT(REFLECT_LIB_PYTHON_MODULE_NAME_PREFIX, __, name), variable)
-
-struct Module {
-    explicit Module(pybind11::module module_) : module(module_)
-    {
-        if (!pybind11::hasattr(module, "all_types")) {
-            module.add_object("all_types", pybind11::dict{});
-        }
-        all_types =
-            pybind11::getattr(module, "all_types").cast<pybind11::dict>();
-    }
-
-    template <typename Class>
-    decltype(auto) bind()
-    {
-        // create class
-        auto c = detail::bind_class<Class>(
-            module, std::is_same<typename Class::Meta::base, void>{});
-
-        // register in type list
-        auto const full_name = demangle(Class::Meta::mangled_name());
-        auto const name = strip_namespaces(full_name);
-        all_types[name.c_str()] = c;
-        if (!namespace_name) {
-            namespace_name.reset(new std::string(get_namespaces(full_name)));
-        } else if (*namespace_name != get_namespaces(full_name)) {
-            throw pybind11::type_error(
-                "For consistence between python modules and C++ namespaces "
-                "inside one module only types from one namespace are allowed. "
-                "Until now types from two C++ namespaces have been introduced "
-                "into this module, namely `" +
-                *namespace_name + "' and `" + get_namespaces(full_name) + "'.");
-        }
-        // for debugging only
-        // std::cout << "binding " << full_name << "\n";
-
-        // add constructor
-        detail::add_ctor(c);
-
-        // add data fields
-        detail::visit(detail::makeDefFieldsVisitor(c, *this),
-                      Class::Meta::fields());
-
-        // add methods
-        detail::visit(detail::makeDefMethodsVisitor(c, *this),
-                      Class::Meta::methods());
-
-        return c;
-    }
-
-    pybind11::module module;
-    pybind11::dict all_types;
-    std::unique_ptr<std::string> namespace_name;
-    pybind11::module aux_module;
-    pybind11::dict aux_types;
-};
 
 }  // namespace reflect_lib
