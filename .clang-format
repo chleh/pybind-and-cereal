@@ -5,7 +5,7 @@ AccessModifierOffset: -4
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Linux
 DerivePointerAlignment: false
 ExperimentalAutoDetectBinPacking: true
 IndentWidth:     4
