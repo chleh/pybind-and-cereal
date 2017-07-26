@@ -27,8 +27,7 @@ REFLECT_LIB_PYTHON_MODULE(types_one, module)
 {
     reflect_lib::Module m(module);
 
-    m.bind<types_one::Base, types_one::BaseTrampoline>().
-            def(pybind11::init<>());
+    m.bind<types_one::Base, types_one::BaseTrampoline>();
 
     m.module.def("say_what", types_one::say_what);
 

@@ -119,8 +119,18 @@ template <class Class, class... Cs>
 decltype(auto)
 add_ctor(pybind11::class_<Class, Cs...>& c)
 {
-    add_ctor_if_default_constructible(c, std::is_default_constructible<Class>{});
-    return add_ctor_if_copy_constructible(c, std::is_copy_constructible<Class>{});
+    /* check for trampoline class */
+    constexpr bool has_trampoline = pybind11::class_<Class, Cs...>::has_alias;
+    using trampoline = typename pybind11::class_<Class, Cs...>::type_alias;
+    constexpr bool t_has_def_ctor =
+        has_trampoline && std::is_default_constructible<trampoline>::value;
+
+    add_ctor_if_default_constructible(
+        c, std::integral_constant < bool,
+        std::is_default_constructible<Class>::value || t_has_def_ctor > {});
+
+    return add_ctor_if_copy_constructible(c,
+                                          std::is_copy_constructible<Class>{});
 }
 
 
