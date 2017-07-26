@@ -29,8 +29,8 @@ struct Module {
             pybind11::getattr(module, "all_types").cast<pybind11::dict>();
     }
 
-    template <typename Class>
-    pybind11::class_<Class> bind();
+    template <typename Class, typename... Options>
+    pybind11::class_<Class, Options...> bind();
 
     pybind11::module module;
     pybind11::dict all_types;
@@ -65,23 +65,23 @@ void visit(Visitor&& v, std::tuple<Ts...>&& t)
 }
 
 // derived class
-template <typename Class>
+template <typename Class, typename... Options>
 decltype(auto) bind_class(pybind11::module& module, std::false_type)
 {
     static_assert(std::is_base_of<typename Class::Meta::base, Class>::value,
                   "The current class is not derived from the specified base.");
     return pybind11::class_<Class, typename Class::Meta::base,
-                            smart_ptr<Class>>(
+                            smart_ptr<Class>, Options...>(
         module,
         mangle(strip_namespaces(demangle(Class::Meta::mangled_name())))
             .c_str());
 }
 
 // not derived class
-template <typename Class>
+template <typename Class, typename... Options>
 decltype(auto) bind_class(pybind11::module& module, std::true_type)
 {
-    return pybind11::class_<Class, smart_ptr<Class>>(
+    return pybind11::class_<Class, smart_ptr<Class>, Options...>(
         module,
         mangle(strip_namespaces(demangle(Class::Meta::mangled_name())))
             .c_str());
@@ -436,11 +436,11 @@ DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
 }  // namespace detail
 
 
-template <typename Class>
-pybind11::class_<Class> Module::bind()
+template <typename Class, typename... Options>
+pybind11::class_<Class, Options...> Module::bind()
 {
     // create class
-    auto c = detail::bind_class<Class>(
+    auto c = detail::bind_class<Class, Options...>(
         module, std::is_same<typename Class::Meta::base, void>{});
 
     // register in type list
