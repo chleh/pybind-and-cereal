@@ -9,7 +9,10 @@
       * no it's not. Better: copy/move in, then get new reference to C++ object
         back, because this ties the lifetime of the owner to the lifetime of the
         returned reference. This is now implemented.
-[ ] overridden methods (write test)
+[v] overridden methods (write test)
+[ ] disallow:
+    [ ] overwriting of fields in derived classes
+    [ ] early binding/static dispatch of methods
 [ ] static methods
 [v] check is_default_constructible
 [ ] guess some constructors, e.g. a constructor taking all the direct data members in
@@ -17,7 +20,7 @@
 [/] custom ctors
 [v] copy constructor, but not move ctor (because not supported by python)
 [v] split tests
-[ ] derived class member shadowing base class member
+[x] derived class member shadowing base class member -- forbidden!
 [v] http://www.boost.org/doc/libs/master/libs/core/doc/html/core/demangle.html
 [ ] multiple inheritance
 [ ] refactoring:
@@ -53,6 +56,9 @@
 [ ] unit tests for name mangling routines
 [v] split python bindings for one module to multiple compilation units
 [v] Add test: Derive a class in types_one_b from a base in types_one_a
+[ ] serialization
+    [ ] objects with non-default ctors
+    [ ] split serialization code across multiple compilation units
 
 
 Non-Features
