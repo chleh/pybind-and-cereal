@@ -19,6 +19,12 @@ struct Base
     REFLECT((Base), FIELDS(i, d, v), METHODS(say_hello, what))
 };
 
+// used to test inheritance from C++ classes in python
+inline std::string say_what(Base& b)
+{
+    return b.what();
+}
+
 struct VectorTest
 {
     std::unique_ptr<std::vector<int>> a;
