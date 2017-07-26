@@ -35,6 +35,9 @@
 [v] function overloads (e.g., for assigning nullptr to unique_ptr)
 [v] python submodules
 [ ] test inheritance in python
+    * It could be static_asserted that if a type std::is_polymorphic and not
+      std::is_final, then a trampoline class for it must be provided for
+      reasons of consistency between the C++ code and the python bindings.
 [ ] compilation speed
 [ ] check return policy for pointers, l-value refs, rvalues
     [v] getters (def_read...()) are return_value_policy::reference_internal (pybind11.h)
