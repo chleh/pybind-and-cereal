@@ -1,0 +1,2 @@
+reflect_lib_add_python_module(types_one.types_one_c types_one_c.cpp)
+reflect_lib_target_link_libraries(types_one.types_one_c PRIVATE reflection)
