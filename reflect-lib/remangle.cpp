@@ -31,6 +31,7 @@ std::string::size_type get_outermost_scope_pos(std::string const& name)
 namespace reflect_lib
 {
 
+// TODO: use the version provided by cereal?
 std::string demangle(const char* mangled_name)
 {
     // TODO does the returned string have to be normalized?
