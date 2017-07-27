@@ -11,6 +11,7 @@
 #include "reflect-macros.h"
 #include "remangle.h"
 #include "smart_ptr.h"
+#include "util.h"
 
 #include <iostream>
 
@@ -42,28 +43,6 @@ struct Module {
 
 namespace detail
 {
-struct NoOp
-{
-    template<typename... Ts>
-    NoOp(Ts&&...)
-    {
-    }
-};
-
-
-template <typename Visitor, typename... Ts, std::size_t... Idcs>
-void visit_impl(Visitor&& v, std::tuple<Ts...>&& t, std::index_sequence<Idcs...>)
-{
-    NoOp{ (v(std::forward<Ts>(std::get<Idcs>(t))), 0) ... };
-}
-
-template <typename Visitor, typename... Ts>
-void visit(Visitor&& v, std::tuple<Ts...>&& t)
-{
-    using Idcs = std::index_sequence_for<Ts...>;
-    visit_impl(std::forward<Visitor>(v), std::forward<std::tuple<Ts...>>(t), Idcs{});
-}
-
 // derived class
 template <typename Class, typename... Options>
 decltype(auto) bind_class(pybind11::module& module, std::false_type)
@@ -475,11 +454,11 @@ pybind11::class_<Class, Options...> Module::bind()
     detail::add_ctor(c);
 
     // add data fields
-    detail::visit(detail::makeDefFieldsVisitor(c, *this),
+    visit(detail::makeDefFieldsVisitor(c, *this),
                   Class::Meta::fields());
 
     // add methods
-    detail::visit(detail::makeDefMethodsVisitor(c, *this),
+    visit(detail::makeDefMethodsVisitor(c, *this),
                   Class::Meta::methods());
 
     return c;
