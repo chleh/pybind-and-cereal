@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <vector>
+
 #include "reflect-lib/reflect-macros.h"
 
 namespace types_one
