@@ -111,6 +111,26 @@ std::unique_ptr<GetValue> makeGetValue(std::unique_ptr<P, D> const& obj)
     return nullptr;
 }
 
+class GetDoubleFieldPredicate
+{
+public:
+    template <typename O>
+    bool operator()(
+        std::pair<const char*, types_one::types_one_a::NoCopy O::*> const& p)
+    {
+        std::cout << "GetDoubleFieldPredicate::op(): " << p.first << '\n';
+        return true;
+    }
+
+#if 0
+    template <typename T>
+    bool operator()(std::pair<const char*, T>)
+    {
+        return false;
+    }
+#endif
+};
+
 int main()
 {
     auto d1 =
@@ -133,6 +153,15 @@ int main()
 
     auto const getter = makeGetValue(d1);
     std::cout << "get value: `" << getter->getDouble({"b", "d"}) << "'\n";
+
+    auto const ptr = reflect_lib::get_first(
+        GetDoubleFieldPredicate{},
+        types_one::types_one_a::types_one_a_a::Derived1::Meta::fields());
+
+    std::cout
+        << "XX "
+        << (void*) ptr
+        << '\n';
 
     return 0;
 }

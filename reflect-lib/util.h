@@ -1,19 +1,22 @@
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include <iostream>
+#include <typeinfo>
+
+#include "reflect-lib/remangle.h"
+
 namespace reflect_lib
 {
-
-template<typename T>
+template <typename T>
 struct ResultType;
 
-template<typename Res, typename Class>
-struct ResultType<Res Class::*>
-{
+template <typename Res, typename Class>
+struct ResultType<Res Class::*> {
     using type = Res;
 };
-
 
 namespace detail
 {
@@ -37,7 +40,7 @@ decltype(auto) apply_impl(Visitor&& v, std::tuple<Ts...>&& t,
 {
     using Result = decltype(v(std::get<0>(t)));
     // TODO use different type!
-    std::vector<Result> result{ v(std::forward<Ts>(std::get<Idcs>(t)))... };
+    std::vector<Result> result{v(std::forward<Ts>(std::get<Idcs>(t)))...};
     return result;
 }
 
@@ -59,49 +62,119 @@ decltype(auto) apply(Visitor&& v, std::tuple<Ts...>&& t)
                               std::forward<std::tuple<Ts...>>(t), Idcs{});
 }
 
-template <typename T>
-union PoorMansOptionalValue
+namespace detail
 {
-    PoorMansOptionalValue() = default;
-    PoorMansOptionalValue(T const& t) : value{t} {}
-    // char dummy;
-    T value;
+template <typename Visitor>
+std::nullptr_t get_first(Visitor&&, std::tuple<>&&)
+{
+    return nullptr;
+}
+
+template <typename Predicate, typename... Ts>
+nullptr_t get_first_impl2(Predicate&&)
+{
+    return nullptr;
+}
+
+#if 0
+template <typename Predicate, typename T, typename... Ts>
+// decltype(std::declval<Predicate>()(std::declval<T>()))
+decltype(auto) get_first_impl2(
+    Predicate&& p, T&& obj, Ts&&... objs)
+{
+    auto match = p(std::forward<T>(obj));
+    if (match)
+        return &obj;
+    return get_first_impl2(std::forward<Predicate>(p),
+                           std::forward<Ts>(objs)...);
+}
+#endif
+
+// Cf. http://stackoverflow.com/a/16824239
+
+// Primary template with a static assertion
+// for a meaningful error message
+// if it ever gets instantiated.
+// We could leave it undefined if we didn't care.
+template <typename, typename T>
+struct HasSuitableCallOperator {
+    static_assert(std::integral_constant<T, false>::value,
+                  "Second template parameter needs to be of function type.");
 };
 
+// specialization that does the checking
+template <typename C, typename Ret, typename... Args>
+struct HasSuitableCallOperator<C, Ret(Args...)> {
+private:
+    template <typename T>
+    static constexpr auto check(T*) -> typename std::is_same<
+        decltype(std::declval<T>()(std::declval<Args>()...)),
+        Ret       // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        >::type;  // attempt to call it and see if the return type is correct
 
-// optional values ////////////////////////////////////////////////////////////
-template <typename T>
-using PoorMansOptional = std::pair<bool, PoorMansOptionalValue<T>>;
+    template <typename>
+    static constexpr std::false_type check(...);
 
-template <typename T>
-PoorMansOptional<T> makeEmptyOptional()
+    typedef decltype(check<C>(nullptr)) type;
+
+public:
+    static constexpr bool value = type::value;
+};
+
+template <typename Predicate, typename T, typename... Ts>
+// decltype(std::declval<Predicate>()(std::declval<T>()))
+decltype(auto) get_first_impl2(Predicate&& p, T&& obj, Ts&&... objs);
+
+template <typename Predicate, typename T, typename... Ts>
+// decltype(std::declval<Predicate>()(std::declval<T>()))
+T* get_first_impl3(std::true_type, Predicate&& p, T&& obj,
+                               Ts&&... objs)
 {
-    return {false, PoorMansOptionalValue<T>{}};
+    if (p(std::forward<T>(obj)))
+        return &obj;
+    return get_first_impl2(std::forward<Predicate>(p),
+                           std::forward<Ts>(objs)...);
 }
 
-template <typename Result, typename Visitor>
-std::pair<bool, PoorMansOptionalValue<Result>> get_first(Visitor&& v,
-                                                    std::tuple<>&& t)
+template <typename Predicate, typename T, typename... Ts>
+// decltype(std::declval<Predicate>()(std::declval<T>()))
+decltype(auto) get_first_impl3(std::false_type, Predicate&& p, T&& obj,
+                               Ts&&... objs)
 {
-    return makeEmptyOptional<T>();
-}
-// optional values end ////////////////////////////////////////////////////////
-
-template <typename Result, typename Visitor>
-PoorMansOptional get_first(Visitor&& v, std::tuple<>&& t)
-{
-    return makeEmptyOptional<Result>();
+    return get_first_impl2(std::forward<Predicate>(p),
+                           std::forward<Ts>(objs)...);
 }
 
-template <typename Result, typename Visitor, typename T, typename... Ts>
-PoorMansOptional get_first(Visitor&& v, std::tuple<T, Ts...>&& t)
+template <typename Predicate, typename T, typename... Ts>
+// decltype(std::declval<Predicate>()(std::declval<T>()))
+decltype(auto) get_first_impl2(Predicate&& p, T&& obj, Ts&&... objs)
 {
-    auto res = v(std::forward<T>(std::get<0>(t)));
-    if (res.first)
-        return res;
-
-    return get_first(std::forward<Visitor>(v), std::get<Indices...>(t));
+    std::cout << "get_first_impl2: " << demangle(typeid(obj).name()) << '\n';
+    return get_first_impl3(
+        std::integral_constant<
+            bool, HasSuitableCallOperator<Predicate, bool(T)>::value>{},
+        std::forward<Predicate>(p),
+        std::forward<T>(obj),
+        std::forward<Ts>(objs)...);
 }
 
+template <typename Predicate, typename... Ts, std::size_t... Indices>
+decltype(auto) get_first_impl(Predicate&& p, std::tuple<Ts...>&& t,
+                              std::index_sequence<Indices...>)
+{
+    return get_first_impl2(std::forward<Predicate>(p),
+                           std::forward<Ts>(std::get<Indices>(t))...);
+}
+
+}  // namespace detail
+
+template <typename Predicate, typename... Ts>
+decltype(auto) get_first(Predicate&& p, std::tuple<Ts...>&& t)
+{
+    using Indices = std::index_sequence_for<Ts...>;
+    return detail::get_first_impl(std::forward<Predicate>(p),
+                                  std::forward<std::tuple<Ts...>>(t),
+                                  Indices{});
+}
 
 }  // namespace reflect_lib
