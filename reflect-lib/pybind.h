@@ -180,7 +180,7 @@ void add_aux_type(Type<T> t, Module& m)
     if (!pybind11::hasattr(m.aux_module, mangled_type_name.c_str())) {
         auto const aux = add_aux_type_impl(t, mangled_type_name, m.aux_module);
 
-        if (aux) {
+        if (static_cast<bool>(aux)) {
             if (m.all_types.contains(type_name.c_str()))
                 throw std::logic_error(
                     "Binding present in all_types, but not yet in aux module.");
