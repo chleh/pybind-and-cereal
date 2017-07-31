@@ -1,3 +1,4 @@
+#include <memory>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -71,7 +72,7 @@ std::nullptr_t get_first(Visitor&&, std::tuple<>&&)
 }
 
 template <typename Predicate, typename... Ts>
-nullptr_t get_first_impl2(Predicate&&)
+std::nullptr_t get_first_impl2(Predicate&&)
 {
     return nullptr;
 }
@@ -121,17 +122,29 @@ public:
     static constexpr bool value = type::value;
 };
 
+template <typename C, typename Ret, typename... Args>
+struct HasSuitableCallOperator<C&, Ret(Args...)>
+    : public HasSuitableCallOperator<C, Ret(Args...)> {
+};
+template <typename C, typename Ret, typename... Args>
+struct HasSuitableCallOperator<C const&, Ret(Args...)>
+    : public HasSuitableCallOperator<C, Ret(Args...)> {
+};
+template <typename C, typename Ret, typename... Args>
+struct HasSuitableCallOperator<C&&, Ret(Args...)>
+    : public HasSuitableCallOperator<C, Ret(Args...)> {
+};
+
 template <typename Predicate, typename T, typename... Ts>
 // decltype(std::declval<Predicate>()(std::declval<T>()))
 decltype(auto) get_first_impl2(Predicate&& p, T&& obj, Ts&&... objs);
 
 template <typename Predicate, typename T, typename... Ts>
 // decltype(std::declval<Predicate>()(std::declval<T>()))
-T* get_first_impl3(std::true_type, Predicate&& p, T&& obj,
-                               Ts&&... objs)
+std::unique_ptr<T> get_first_impl3(std::true_type, Predicate&& p, T&& obj, Ts&&... objs)
 {
     if (p(std::forward<T>(obj)))
-        return &obj;
+        return std::unique_ptr<T>(new T(obj));
     return get_first_impl2(std::forward<Predicate>(p),
                            std::forward<Ts>(objs)...);
 }
@@ -149,7 +162,11 @@ template <typename Predicate, typename T, typename... Ts>
 // decltype(std::declval<Predicate>()(std::declval<T>()))
 decltype(auto) get_first_impl2(Predicate&& p, T&& obj, Ts&&... objs)
 {
+#if 0
     std::cout << "get_first_impl2: " << demangle(typeid(obj).name()) << '\n';
+    std::cout << "  Suit op()? " << demangle(typeid(Predicate).name()) << " "
+              << HasSuitableCallOperator<Predicate, bool(T)>::value << '\n';
+#endif
     return get_first_impl3(
         std::integral_constant<
             bool, HasSuitableCallOperator<Predicate, bool(T)>::value>{},

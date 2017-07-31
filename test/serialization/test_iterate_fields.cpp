@@ -1,3 +1,4 @@
+#include <cassert>
 #include <iostream>
 #include <type_traits>
 
@@ -114,9 +115,18 @@ std::unique_ptr<GetValue> makeGetValue(std::unique_ptr<P, D> const& obj)
 class GetDoubleFieldPredicate
 {
 public:
+#if 0
     template <typename O>
     bool operator()(
         std::pair<const char*, types_one::types_one_a::NoCopy O::*> const& p)
+    {
+        std::cout << "GetDoubleFieldPredicate::op(): " << p.first << '\n';
+        return true;
+    }
+#endif
+    template <typename O>
+    bool operator()(
+        std::pair<const char*, double O::*> const& p)
     {
         std::cout << "GetDoubleFieldPredicate::op(): " << p.first << '\n';
         return true;
@@ -130,6 +140,95 @@ public:
     }
 #endif
 };
+
+#if 0
+template <typename Functor, typename Function>
+decltype(auto) apply_incl_ancestors(Functor&& ftor, Function&& fct, Type<void>)
+{
+    return nullptr;
+}
+
+template <typename Functor, typename Function, typename Class>
+decltype(auto) apply_incl_ancestors(Functor&& ftor, Function&& fct, Type<Class>)
+{
+    auto res = apply_incl_ancestors(std::forward<Functor>(ftor),
+                                    std::forward<Function>(fct),
+                                    Type<typename Class::Meta::base>{});
+    if (res)
+        return res;
+    return ftor(fct, Class::Meta::fields());
+}
+
+template <typename Class, typename Functor, typename Function>
+decltype(auto) apply_incl_ancestors(Functor&& ftor, Function&& fct)
+{
+    return apply_incl_ancestors(std::forward<Functor>(ftor),
+                                std::forward<Function>(fct),
+                                Type<Class>{});
+}
+#endif
+
+template <typename Function>
+decltype(auto) get_first_incl_ancestors(Function&& fct, Type<void>)
+{
+    return nullptr;
+}
+
+template <typename A, typename B>
+struct NotNull {
+    static_assert(std::is_same<A, B>::value, "Types differ");
+};
+template <typename A>
+struct NotNull<A, std::nullptr_t> {
+    using type = A;
+};
+template <typename A>
+struct NotNull<std::nullptr_t, A> {
+    using type = A;
+};
+template <>
+struct NotNull<std::nullptr_t, std::nullptr_t> {
+    using type = std::nullptr_t;
+};
+
+template <typename Function, typename Class>
+auto get_first_incl_ancestors(Function&& fct, Type<Class>) -> typename NotNull<
+    decltype(get_first_incl_ancestors(
+        std::declval<Function>(),
+        std::declval<Type<typename Class::Meta::base>>())),
+    decltype(reflect_lib::get_first(
+        std::declval<Function>(),
+        std::declval<decltype(Class::Meta::fields())>()))>::type
+{
+    auto res = get_first_incl_ancestors(std::forward<Function>(fct),
+                                        Type<typename Class::Meta::base>{});
+    if (res != nullptr) {
+        // std::cout << "Res! " << (void*)res << '\n';
+        return res;
+    }
+#if 0
+    std::cout << "=========== " << reflect_lib::demangle(typeid(Class).name())
+              << '\n';
+
+    auto p = reflect_lib::get_first(
+        std::move(fct),  // GetDoubleFieldPredicate{},
+        types_one::types_one_a::types_one_a_a::Derived1::Meta::fields());
+    std::cout << "== ZZZ  " << (void*)p << '\n';
+    auto p2 = reflect_lib::get_first(
+        GetDoubleFieldPredicate{},
+        types_one::types_one_a::types_one_a_a::Derived1::Meta::fields());
+    std::cout << "== ZZZ2 " << (void*)p2 << '\n';
+
+#endif
+
+    return reflect_lib::get_first(fct, Class::Meta::fields());
+}
+
+template <typename Class, typename Function>
+decltype(auto) get_first_incl_ancestors(Function&& fct)
+{
+    return get_first_incl_ancestors(std::forward<Function>(fct), Type<Class>{});
+}
 
 int main()
 {
@@ -158,10 +257,32 @@ int main()
         GetDoubleFieldPredicate{},
         types_one::types_one_a::types_one_a_a::Derived1::Meta::fields());
 
-    std::cout
-        << "XX "
-        << (void*) ptr
-        << '\n';
+    std::cout << "XX " << (void*)ptr << '\n';
+
+    auto ptr2 = get_first_incl_ancestors<
+        types_one::types_one_a::types_one_a_a::Derived1>(
+        GetDoubleFieldPredicate{});
+
+    std::cout << "YY " << (void*)ptr2.get() << '\n';
+
+    if (ptr2 && d1) {
+        std::cout << "ptrs " << &types_one::Base::d << " " << ptr2->second << '\n';
+        std::cout << "ptr int " << &types_one::Base::i << '\n';
+        std::cout << "ptrs " << reflect_lib::demangle(typeid(&types_one::Base::d).name()) << " " << reflect_lib::demangle(typeid(ptr2->second).name()) << '\n';
+        // assert(&types_one::Base::d == ptr2->second);
+        auto p = &types_one::Base::d;
+        std::cout << "((*d1).*p) " << ((*d1).*p) << '\n';
+
+        std::cout << "YY name `" << ptr2->first << "'\n";
+        std::cout << "YY ptr `" << ptr2->second << "'\n";
+        std::cout << "d1 `" << d1.get() << "'\n";
+        std::cout << reflect_lib::demangle(typeid(decltype(ptr2->second)).name()) << '\n';
+        std::cout << reflect_lib::demangle(typeid(decltype(d1.get() ->* (ptr2->second))).name()) << '\n';
+        types_one::Base* b = d1.get();
+        std::cout << "b  `" << b << "'\n";
+        std::cout << ((*b) .* (ptr2->second));
+        std::cout << "YY value: `" << ((static_cast<types_one::Base&>(*d1)).*(ptr2->second)) << "'\n";
+    }
 
     return 0;
 }
