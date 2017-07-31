@@ -6,8 +6,6 @@
 
 #include "test/types/types_one/types_one_a/types_one_a_a/types_one_a_a.h"
 
-
-
 template <typename T>
 void output(T const& obj)
 {
@@ -39,11 +37,12 @@ void output(std::unique_ptr<T> const& obj)
                   << reflect_lib::demangle(typeid(T).name()) << '\n';
 }
 
-
 class FieldInfoFilter
 {
     template <typename T>
-    void operator() () {}
+    void operator()()
+    {
+    }
 };
 
 template <typename T, typename Key, typename... Keys>
@@ -55,12 +54,13 @@ decltype(auto) getValue(T const& obj, Key&& key, Keys&&... keys)
             if (field_info.first == key_s) {
                 return field_info.first;
             } else {
-                return (char const*) nullptr;
+                return (char const*)nullptr;
             }
         },
         T::Meta::fields());
     for (auto a : accessors) {
-        if (a) return a;
+        if (a)
+            return a;
     }
 
     return (typename std::decay<decltype(accessors[0])>::type) nullptr;
@@ -74,6 +74,43 @@ decltype(auto) getValue(std::unique_ptr<T, D> const& obj,
     return getValue(*obj, std::forward<Key>(key), std::forward<Keys>(keys)...);
 }
 
+class GetValue
+{
+public:
+    virtual ~GetValue() = default;
+
+    virtual double getDouble(std::vector<std::string> path) const = 0;
+};
+
+template <typename T>
+class GeneralGetValue : public GetValue
+{
+public:
+    explicit GeneralGetValue(T const& obj) : obj_(obj) {}
+
+    double getDouble(std::vector<std::string> path) const override
+    {
+        return 0.0;
+    }
+
+private:
+    T const& obj_;
+};
+
+template <typename T>
+std::unique_ptr<GetValue> makeGetValue(T const& obj)
+{
+    return std::make_unique<GeneralGetValue<T>>(obj);
+}
+
+template <typename P, typename D>
+std::unique_ptr<GetValue> makeGetValue(std::unique_ptr<P, D> const& obj)
+{
+    if (obj)
+        return makeGetValue(*obj);
+    return nullptr;
+}
+
 int main()
 {
     auto d1 =
@@ -82,7 +119,8 @@ int main()
     d1->d = 3.14;
     d1->s = "hello";
 
-    auto d2 = std::make_unique<types_one::types_one_a::types_one_a_a::Derived1>();
+    auto d2 =
+        std::make_unique<types_one::types_one_a::types_one_a_a::Derived1>();
     d2->i = 5;
     d2->d = 2.71;
     d2->s = "bye";
@@ -92,6 +130,9 @@ int main()
     output(d1);
 
     std::cout << "get value: `" << getValue(d1, "b", "d") << "'\n";
+
+    auto const getter = makeGetValue(d1);
+    std::cout << "get value: `" << getter->getDouble({"b", "d"}) << "'\n";
 
     return 0;
 }

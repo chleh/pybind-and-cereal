@@ -113,16 +113,6 @@ add_ctor(pybind11::class_<Class, Cs...>& c)
                                           std::is_copy_constructible<Class>{});
 }
 
-
-template<typename T>
-struct ResultType;
-
-template<typename Res, typename Class>
-struct ResultType<Res Class::*>
-{
-    using type = Res;
-};
-
 template<typename T>
 struct GetClass;
 
