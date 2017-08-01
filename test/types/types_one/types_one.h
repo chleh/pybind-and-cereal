@@ -42,7 +42,8 @@ struct VectorTest
 
 class NonDefaultConstructible
 {
-    explicit NonDefaultConstructible(int a_, int b_) : a(a_), b(b_) {}
+public:
+    explicit NonDefaultConstructible(double a_, int b_) : a(a_), b(b_) {}
 
 private:
      const double a;
