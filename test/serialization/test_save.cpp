@@ -1,6 +1,12 @@
 #include <iostream>
 #include <fstream>
 
+#if 0
+#include <cereal/archives/xml.hpp>
+#else
+#include <cereal/archives/json.hpp>
+#endif
+
 #include "serialization_types1.h"
 
 int main()
@@ -18,8 +24,13 @@ int main()
     d3->t = 42;
     d3->u = 2.5;
 
+#if 0
     std::ofstream os("archive.xml");
     cereal::XMLOutputArchive archive(os);
+#else
+    std::ofstream os("archive.json");
+    cereal::JSONOutputArchive archive(os);
+#endif
 
     archive(b);
 

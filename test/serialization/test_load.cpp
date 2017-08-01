@@ -3,6 +3,8 @@
 #include <cassert>
 #include <typeinfo>
 
+#include <cereal/archives/xml.hpp>
+
 // note: keep that order!
 #include "serialization_types2.h"
 
