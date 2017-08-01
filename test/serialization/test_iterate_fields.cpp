@@ -112,6 +112,28 @@ std::unique_ptr<GetValue> makeGetValue(std::unique_ptr<P, D> const& obj)
     return nullptr;
 }
 
+
+
+class GetFieldPredicate
+{
+public:
+    explicit GetFieldPredicate(std::string const& field_name)
+        : field_name_{field_name}
+    {
+    }
+
+    template <typename P>
+    bool operator()(P const& p)
+    {
+        // std::cout << "GetDoubleFieldPredicate::op(): " << p.first << '\n';
+        return p.first == field_name_;
+    }
+
+private:
+    std::string const field_name_;
+};
+
+
 class GetDoubleFieldPredicate
 {
 public:
@@ -207,6 +229,15 @@ int main()
 
     assert(ptr);
     assert((*d1).*(ptr->second) == 3.14);
+
+
+#if 0
+    auto ptr2 = get_first_incl_ancestors<
+        types_one::types_one_a::types_one_a_a::Derived1>(
+        GetFieldPredicate{"d"});
+
+    assert(ptr2);
+#endif
 
     return 0;
 }
