@@ -215,6 +215,13 @@ private:
         op_impl(name_member, t, typename TypeFeatures<Res>::features{});
     }
 
+    template <typename MemberPtr, typename Res>
+    void op_impl(std::pair<const char*, MemberPtr> const& name_member,
+            Type<Res const> t) const
+    {
+        c.def_readonly(name_member.first, name_member.second);
+    }
+
     // member of type std::unique_ptr
     template <typename MemberPtr, typename UniqueT, typename UniqueD, bool... Feats>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
