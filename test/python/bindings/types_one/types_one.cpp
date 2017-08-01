@@ -32,4 +32,6 @@ REFLECT_LIB_PYTHON_MODULE(types_one, module)
     m.module.def("say_what", types_one::say_what);
 
     m.bind<types_one::VectorTest>();
+
+    m.bind<types_one::NonDefaultConstructible>();
 }

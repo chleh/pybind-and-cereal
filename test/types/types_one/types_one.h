@@ -40,4 +40,16 @@ struct VectorTest
     REFLECT((VectorTest), FIELDS(a, b), METHODS(get, set, set_ref))
 };
 
+class NonDefaultConstructible
+{
+    explicit NonDefaultConstructible(int a_, int b_) : a(a_), b(b_) {}
+
+private:
+     const double a;
+     const int b;
+
+public:
+     REFLECT((NonDefaultConstructible), FIELDS(a, b), METHODS())
+};
+
 }  // namespace types_one
