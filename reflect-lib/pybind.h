@@ -113,6 +113,65 @@ add_ctor(pybind11::class_<Class, Cs...>& c)
                                           std::is_copy_constructible<Class>{});
 }
 
+template <typename... Ts>
+struct GetFieldTypes
+{
+private:
+    using IndexSequence = std::index_sequence_for<Ts...>;
+
+    template <typename Tuple, std::size_t... Indices>
+    static decltype(auto) get_types(Tuple, std::index_sequence<Indices...>)
+        -> std::tuple<typename ResultType<decltype(
+            std::get<Indices>(std::declval<Tuple>()).second)>::type...>;
+
+public:
+    using type =
+        decltype(get_types(std::declval<std::tuple<Ts...>>(), IndexSequence{}));
+    // using type = std::tuple<decltype(std::declval<Ts>()))...>
+};
+
+template <class Class, class... Options, typename... Ts>
+decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>&c ,
+                             std::tuple<Ts...>*, std::false_type)
+{
+    std::cout << "no special ctors\n";
+    return c;
+}
+
+template <class Class, class... Options, typename... Ts>
+decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
+                             std::tuple<Ts...>*, std::true_type)
+{
+    std::cout << "some special ctors\n";
+    return c.def(pybind11::init<Ts...>());;
+}
+
+template <class Class, class... Options, typename... Ts>
+decltype(auto)
+add_ctor_impl(pybind11::class_<Class, Options...>& c, std::tuple<Ts...>* t)
+{
+    std::cout << "ZZ " << demangle(typeid(Class).name()) << '\n';
+    std::cout << "zz "
+              << demangle(
+                     typeid(std::tuple<typename std::remove_const<Ts>::type...>)
+                         .name())
+              << '\n';
+    return add_ctor_impl(
+        c, t, std::is_constructible<Class,
+                                    typename std::remove_const<Ts>::type...>{});
+}
+
+// TODO trampoline classes
+template <class Class, class... Options, typename... Ts>
+decltype(auto)
+add_ctor(pybind11::class_<Class, Options...>& c, std::tuple<Ts...>)
+{
+    using FieldTypes = typename GetFieldTypes<Ts...>::type;
+    std::cout << "XX " << demangle(typeid(FieldTypes).name()) << '\n';
+
+    return add_ctor_impl(c, static_cast<FieldTypes*>(nullptr));
+}
+
 template<typename T>
 struct GetClass;
 
@@ -449,6 +508,7 @@ pybind11::class_<Class, Options...> Module::bind()
 
     // add constructor
     detail::add_ctor(c);
+    detail::add_ctor(c, Class::Meta::fields());
 
     // add data fields
     visit(detail::makeDefFieldsVisitor(c, *this),
