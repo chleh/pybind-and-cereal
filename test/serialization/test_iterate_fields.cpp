@@ -115,13 +115,20 @@ std::unique_ptr<GetValue> makeGetValue(std::unique_ptr<P, D> const& obj)
 class GetDoubleFieldPredicate
 {
 public:
-    template <typename O>
-    bool operator()(
-        std::pair<const char*, double O::*> const& p)
+    explicit GetDoubleFieldPredicate(std::string const& field_name)
+        : field_name_{field_name}
     {
-        std::cout << "GetDoubleFieldPredicate::op(): " << p.first << '\n';
-        return true;
     }
+
+    template <typename O>
+    bool operator()(std::pair<const char*, double O::*> const& p)
+    {
+        // std::cout << "GetDoubleFieldPredicate::op(): " << p.first << '\n';
+        return p.first == field_name_;
+    }
+
+private:
+    std::string const field_name_;
 };
 
 template <typename Function>
@@ -196,10 +203,10 @@ int main()
 
     auto ptr = get_first_incl_ancestors<
         types_one::types_one_a::types_one_a_a::Derived1>(
-        GetDoubleFieldPredicate{});
+        GetDoubleFieldPredicate{"d"});
 
     assert(ptr);
-    assert((*d1) .* (ptr->second) == 3.14);
+    assert((*d1).*(ptr->second) == 3.14);
 
     return 0;
 }
