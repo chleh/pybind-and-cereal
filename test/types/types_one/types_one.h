@@ -43,14 +43,19 @@ struct VectorTest
 class NonDefaultConstructible
 {
 public:
-    explicit NonDefaultConstructible(double a_, int b_) : a(a_), b(b_) {}
+    explicit NonDefaultConstructible(double a_, int b_
+                                     /*, std::unique_ptr<int>&& c_*/)
+        : a(a_), b(b_) // , c(std::move(c_))
+    {
+    }
 
 private:
      const double a;
      const int b;
+     // std::unique_ptr<int> c;
 
 public:
-     REFLECT((NonDefaultConstructible), FIELDS(a, b), METHODS())
+     REFLECT((NonDefaultConstructible), FIELDS(a, b/*, c*/), METHODS())
 };
 
 }  // namespace types_one
