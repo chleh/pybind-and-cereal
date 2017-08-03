@@ -70,6 +70,10 @@ public:
         return get();
     }
 
+    decltype(auto) use_count() const {
+        return i.use_count();
+    }
+
     T* new_copied() const {
         if (!*this) return nullptr;
         if (!i->data_copier)
