@@ -42,8 +42,19 @@ struct Derived3 : Base {
         return p;
     }
 
+    int get_int_from_unique_ptr(std::unique_ptr<int> const& p)
+    {
+        if (p) return 2* (*p);
+        return 0;
+    }
+
+    int nocopy_method_arg(types_one::types_one_a::NoCopy const& nc)
+    {
+        return nc.i;
+    }
+
     REFLECT_DERIVED((Derived3<T, U>), (Base), FIELDS(t, u, v, w),
-                    METHODS(f))  // TODO g, h
+                    METHODS(f, nocopy_method_arg))  // TODO g, h
 };
 
 struct NoCopyDerived : public types_one::types_one_a::NoCopy
