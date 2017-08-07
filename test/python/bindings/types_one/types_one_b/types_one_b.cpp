@@ -71,6 +71,16 @@ int i_up(
 }  // namespace types_one
 
 
+template <typename T>
+struct NoCleanup
+{
+    explicit NoCleanup(T* p_) : p{p_} {}
+    std::unique_ptr<T> p;
+
+    ~NoCleanup() { p.release(); }
+};
+
+
 REFLECT_LIB_PYTHON_MODULE(types_one__types_one_b, module)
 {
     reflect_lib::Module m(module);
@@ -79,22 +89,16 @@ REFLECT_LIB_PYTHON_MODULE(types_one__types_one_b, module)
         "get_int_from_unique_ptr",
         [](types_one::types_one_b::Derived3<int, int>& inst,
            reflect_lib::smart_ptr<types_one::types_one_a::NoCopy> const& p) {
-            auto p_ = std::unique_ptr<types_one::types_one_a::NoCopy>(p.get());
-            // TODO: problematic: additional copy
-            auto res = inst.get_int_from_unique_ptr(p_);
-            p_.release();
-            return res;
+            NoCleanup<types_one::types_one_a::NoCopy> p_(p.get());
+            return inst.get_int_from_unique_ptr(p_.p);
         });
 
     m.module.def(
         "i_up_cr",
         [](reflect_lib::smart_ptr<types_one::types_one_a::NoCopy> const& p) {
-            auto p_ = std::unique_ptr<types_one::types_one_a::NoCopy>(p.get());
-            auto const& pr = p_;
-            // TODO: problematic: additional copy
-            auto res = types_one::types_one_b::i_up_cr(pr);
-            p_.release();
-            return res;
+            NoCleanup<types_one::types_one_a::NoCopy> p_(p.get());
+            auto const& pr = p_.p;
+            return types_one::types_one_b::i_up_cr(pr);
         });
 
     m.module.def(
