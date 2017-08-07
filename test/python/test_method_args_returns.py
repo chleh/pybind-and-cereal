@@ -26,6 +26,15 @@ class TestMethodArgsReturns(unittest.TestCase):
         res = d3.get_int_from_unique_ptr(nc)
         self.assertEqual(2*nc.i, res)
 
+    def test_unique_ptr_misc_args(self):
+        nc = types_one.types_one_a.NoCopy()
+        nc.i = 42
+
+        self.assertEqual(2*nc.i, types_one.types_one_b.i_up_cr(nc))
+        self.assertEqual(2*nc.i, types_one.types_one_b.i_up_r(nc))
+        self.assertEqual(2*nc.i, types_one.types_one_b.i_up_rr(nc))
+        self.assertEqual(2*nc.i, types_one.types_one_b.i_up(nc))
+
 if __name__ == '__main__':
     unittest.main()
 
