@@ -93,6 +93,7 @@ REFLECT_LIB_PYTHON_MODULE(types_one__types_one_b, module)
             return inst.get_int_from_unique_ptr(p_.p);
         });
 
+    // unique_ptr specific
     m.module.def(
         "i_up_cr",
         [](reflect_lib::smart_ptr<types_one::types_one_a::NoCopy> const& p) {
@@ -101,6 +102,7 @@ REFLECT_LIB_PYTHON_MODULE(types_one__types_one_b, module)
             return types_one::types_one_b::i_up_cr(pr);
         });
 
+    // unique_ptr specific
     m.module.def(
         "i_up_r",
         [](reflect_lib::smart_ptr<types_one::types_one_a::NoCopy>& p) {
@@ -111,6 +113,7 @@ REFLECT_LIB_PYTHON_MODULE(types_one__types_one_b, module)
             return res;
         });
 
+    // for all && args?
     m.module.def(
         "i_up_rr",
         [](reflect_lib::smart_ptr<types_one::types_one_a::NoCopy>& p) {
@@ -118,12 +121,22 @@ REFLECT_LIB_PYTHON_MODULE(types_one__types_one_b, module)
             return types_one::types_one_b::i_up_rr(std::move(p_));
         });
 
+    // for all non-copyable types
     m.module.def(
         "i_up",
-        [](reflect_lib::smart_ptr<types_one::types_one_a::NoCopy>& p) {
+        [](reflect_lib::smart_ptr<types_one::types_one_a::NoCopy> const& p) {
             auto p_ = std::unique_ptr<types_one::types_one_a::NoCopy>(p.new_moved());
             return types_one::types_one_b::i_up(std::move(p_));
         });
+
+    // Does not work:
+#if 0
+    m.module.def(
+        "i_up_cr2",
+        [](std::unique_ptr<types_one::types_one_a::NoCopy> const& p) {
+            return types_one::types_one_b::i_up_cr(p);
+        });
+#endif
 
 
 
