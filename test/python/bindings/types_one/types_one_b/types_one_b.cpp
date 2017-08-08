@@ -31,7 +31,6 @@ public:
     }
 
     std::unique_ptr<T>& get() { return p_; }
-    std::unique_ptr<T> const& getConst() const { return p_; }
     std::unique_ptr<T> && getRvalue() { return std::move(p_); }
 
 private:
@@ -41,7 +40,7 @@ private:
 public:
     REFLECT((UniquePtrReference<T>),
             FIELDS(),
-            METHODS(/*get, getConst, getRvalue*/))
+            METHODS(/*get, getRvalue*/))
 };
 
 template <typename T>
@@ -120,8 +119,10 @@ REFLECT_LIB_PYTHON_MODULE(types_one__types_one_b, module)
     // unique_ptr specific, u.p. const& --> bad style!
     m.module.def(
         "i_up_cr",
-        [](types_one::types_one_b::UniquePtrReference<types_one::types_one_a::NoCopy> const& p) {
-            return types_one::types_one_b::i_up_cr(p.getConst());
+        [](reflect_lib::smart_ptr<types_one::types_one_a::NoCopy> const& p) {
+            NoCleanup<types_one::types_one_a::NoCopy> p_(p.get());
+            auto const& pr = p_.p;
+            return types_one::types_one_b::i_up_cr(pr);
         });
 
     // unique_ptr specific

@@ -30,9 +30,10 @@ class TestMethodArgsReturns(unittest.TestCase):
         nc = types_one.types_one_a.NoCopy()
         nc.i = 42
 
-        ref = types_one.types_one_b.move_to_unique_ptr(nc)
 
-        self.assertEqual(2*nc.i, types_one.types_one_b.i_up_cr(ref))
+        self.assertEqual(2*nc.i, types_one.types_one_b.i_up_cr(nc))
+
+        ref = types_one.types_one_b.move_to_unique_ptr(nc)
         self.assertEqual(2*nc.i, types_one.types_one_b.i_up_r(ref))
         self.assertEqual(2*nc.i, types_one.types_one_b.i_up_rr(ref))
         self.assertEqual(2*nc.i, types_one.types_one_b.i_up(ref))
