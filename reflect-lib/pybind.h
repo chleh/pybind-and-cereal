@@ -181,6 +181,14 @@ struct GetClass<Res Class::*>
     using type = Class;
 };
 
+template <typename T>
+struct GetArgumentType;
+
+template <typename R, typename C, typename A>
+struct GetArgumentType<R C::*(A)> {
+    using type = A;
+};
+
 template<typename T>
 struct TypeFeatures
 {
@@ -413,6 +421,76 @@ template<typename Class, typename... Args>
 DefFieldsVisitor<Class> makeDefFieldsVisitor(Class& c, Args&&... args) {
     return DefFieldsVisitor<Class>{c, std::forward<Args>(args)...};
 }
+
+
+
+template <typename T>
+class UniquePtrReference
+{
+public:
+    static UniquePtrReference<T> new_copied(reflect_lib::smart_ptr<T> const& p)
+    {
+        return UniquePtrReference<T>{p.new_copied()};
+    }
+    static UniquePtrReference<T> new_moved(reflect_lib::smart_ptr<T> const& p)
+    {
+        return UniquePtrReference<T>{p.new_moved()};
+    }
+
+    std::unique_ptr<T>& get() { return p_; }
+    std::unique_ptr<T> const& getConst() const { return p_; }
+    std::unique_ptr<T> && getRvalue() { return std::move(p_); }
+
+private:
+    UniquePtrReference(T* p) : p_(p) {}
+    std::unique_ptr<T> p_;
+};
+
+
+
+template <typename CPPType>
+struct ArgumentConverter {
+    static decltype(auto) convert(CPPType&& o)
+    {
+        return std::forward<CPPType>(o);
+    }
+    static void aux_bindings(pybind11::module&) {}
+
+    using PyType = CPPType;
+};
+
+template <typename P, typename D>
+struct ArgumentConverter<std::unique_ptr<P, D>> {
+    static std::unique_ptr<P, D>&& convert(UniquePtrReference<P>& p)
+    {
+        return p.getRValue();
+    }
+    static void aux_bindings(pybind11::module&) { /* TODO */ }
+
+    using PyType = typename GetArgumentType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ArgumentConverter<std::unique_ptr<P, D>&> {
+    static std::unique_ptr<P, D>& convert(UniquePtrReference<P>& p)
+    {
+        return p.get();
+    }
+    static void aux_bindings(pybind11::module&) { /* TODO */ }
+
+    using PyType = typename GetArgumentType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ArgumentConverter<std::unique_ptr<P, D> const&> {
+    static std::unique_ptr<P, D> const& convert(UniquePtrReference<P> const& p)
+    {
+        return p.getConst();
+    }
+    static void aux_bindings(pybind11::module&) { /* TODO */ }
+
+    using PyType = typename GetArgumentType<decltype(convert)>::type;
+};
 
 template<typename PybindClass>
 struct DefMethodsVisitor
