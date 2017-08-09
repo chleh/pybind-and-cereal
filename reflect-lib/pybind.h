@@ -523,12 +523,17 @@ private:
             policy = pybind11::return_value_policy::reference_internal;
         }
 
+        auto wrapped_method = [member_ptr](
+            Class& c, typename ArgumentConverter<Args>::PyType... args) -> Res {
+            return (c.*member_ptr)(
+                ArgumentConverter<Args>::convert(std::forward<Args>(args))...);
+        };
+
         // add auxiliary bindings
-        visit([&](auto t) {
-                add_aux_type(t, module);
-                }, std::make_tuple(Type<typename std::decay<Res>::type>{},
-                    Type<typename std::decay<Args>::type>{}...));
-        c.def(name, member_ptr, policy);
+        visit([&](auto t) { add_aux_type(t, module); },
+              std::make_tuple(Type<typename std::decay<Res>::type>{},
+                              Type<typename std::decay<Args>::type>{}...));
+        c.def(name, wrapped_method, policy);
     }
 
     // method returning std::unique_ptr
