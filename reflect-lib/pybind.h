@@ -447,6 +447,7 @@ private:
 };
 
 
+// argument converters /////////////////////////////////////////////////////////
 
 template <typename CPPType>
 struct ArgumentConverter {
@@ -454,7 +455,6 @@ struct ArgumentConverter {
     {
         return std::forward<CPPType>(o);
     }
-    static void aux_bindings(pybind11::module&) {}
 
     using PyType = CPPType;
 };
@@ -465,7 +465,16 @@ struct ArgumentConverter<std::unique_ptr<P, D>> {
     {
         return p.getRValue();
     }
-    static void aux_bindings(pybind11::module&) { /* TODO */ }
+
+    using PyType = typename GetArgumentType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ArgumentConverter<std::unique_ptr<P, D>&&> {
+    static std::unique_ptr<P, D> const& convert(UniquePtrReference<P>& p)
+    {
+        return p.getRvalue();
+    }
 
     using PyType = typename GetArgumentType<decltype(convert)>::type;
 };
@@ -476,7 +485,6 @@ struct ArgumentConverter<std::unique_ptr<P, D>&> {
     {
         return p.get();
     }
-    static void aux_bindings(pybind11::module&) { /* TODO */ }
 
     using PyType = typename GetArgumentType<decltype(convert)>::type;
 };
@@ -487,10 +495,70 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
     {
         return p.getConst();
     }
-    static void aux_bindings(pybind11::module&) { /* TODO */ }
 
     using PyType = typename GetArgumentType<decltype(convert)>::type;
 };
+
+// end argument converters /////////////////////////////////////////////////////
+
+
+// return value converters /////////////////////////////////////////////////////
+
+template <typename CPPType>
+struct ReturnValueConverter {
+    static decltype(auto) convert(CPPType&& o)
+    {
+        return std::forward<CPPType>(o);
+    }
+
+    using PyType = CPPType;
+};
+
+template <typename P, typename D>
+struct ReturnValueConverter<std::unique_ptr<P, D>> {
+    static smart_ptr<P> convert(std::unique_ptr<P, D> p)
+    {
+        // TODO: might create wrong copy/move function!
+        return smart_ptr<P>(p.release());
+    }
+
+    using PyType = typename ResultType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ReturnValueConverter<std::unique_ptr<P, D>&&> {
+    static std::unique_ptr<P, D> const& convert(std::unique_ptr<P, D>&& p)
+    {
+        // TODO: might create wrong copy/move function!
+        return smart_ptr<P>(p.release());
+    }
+
+    using PyType = typename ResultType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ReturnValueConverter<std::unique_ptr<P, D>&> {
+    static UniquePtrReference<P> convert(std::unique_ptr<P, D>& p)
+    {
+        return UniquePtrReference<P>(p.get());
+    }
+
+    using PyType = typename ResultType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
+    static UniquePtrReference<P> convert(std::unique_ptr<P, D> const& p)
+    {
+        // TODO maybe just return p.get() ?
+        return UniquePtrReference<P>(p.get());
+    }
+
+    using PyType = typename ResultType<decltype(convert)>::type;
+};
+
+// end return value converters /////////////////////////////////////////////////
+
 
 template<typename PybindClass>
 struct DefMethodsVisitor
@@ -511,28 +579,54 @@ private:
         op_impl(name, member_ptr, static_cast<Res (Class::*)(Args...)>(nullptr));
     }
 
-    template<typename MemberFctPtr, typename Res, typename Class, typename... Args>
-    void op_impl(const char* name, MemberFctPtr member_ptr, Res (Class::*)(Args...)) const
+    template <typename MemberFctPtr, typename Res, typename Class,
+              typename... Args>
+    decltype(auto) static wrap_method(MemberFctPtr member_ptr,
+                                      Res (Class::*)(Args...))
     {
-        static_assert(!std::is_pointer<Res>::value,
-                "Methods returning pointers are not supported by this library.");
+        return [member_ptr](
+                   Class& c,
+                   typename ArgumentConverter<Args>::PyType... args) -> Res {
+            return ReturnValueConverter<Res>::convert((c.*member_ptr)(
+                ArgumentConverter<Args>::convert(std::forward<Args>(args))...));
+        };
+    }
 
-        pybind11::return_value_policy policy = pybind11::return_value_policy::automatic;
+    template <typename MemberFctPtr, typename Class, typename... Args>
+    decltype(auto) static wrap_method(MemberFctPtr member_ptr,
+                                      void (Class::*)(Args...))
+    {
+        return [member_ptr](Class& c,
+                            typename ArgumentConverter<Args>::PyType... args) {
+            (c.*member_ptr)(
+                ArgumentConverter<Args>::convert(std::forward<Args>(args))...);
+        };
+    }
+
+    template <typename MemberFctPtr, typename Res, typename Class,
+              typename... Args>
+    void op_impl(const char* name, MemberFctPtr member_ptr,
+                 Res (Class::*p)(Args...)) const
+    {
+        static_assert(
+            !std::is_pointer<Res>::value,
+            "Methods returning pointers are not supported by this library.");
+
+        pybind11::return_value_policy policy =
+            pybind11::return_value_policy::automatic;
 
         if (std::is_lvalue_reference<Res>::value) {
             policy = pybind11::return_value_policy::reference_internal;
         }
 
-        auto wrapped_method = [member_ptr](
-            Class& c, typename ArgumentConverter<Args>::PyType... args) -> Res {
-            return (c.*member_ptr)(
-                ArgumentConverter<Args>::convert(std::forward<Args>(args))...);
-        };
+        auto wrapped_method = wrap_method(member_ptr, p);
 
         // add auxiliary bindings
         visit([&](auto t) { add_aux_type(t, module); },
-              std::make_tuple(Type<typename std::decay<Res>::type>{},
-                              Type<typename std::decay<Args>::type>{}...));
+              std::make_tuple(
+                  Type<typename std::decay<Res>::type>{},
+                  Type<typename std::decay<
+                      typename ArgumentConverter<Args>::PyType>::type>{}...));
         c.def(name, wrapped_method, policy);
     }
 
