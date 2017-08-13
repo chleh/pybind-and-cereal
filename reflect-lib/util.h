@@ -19,6 +19,16 @@ struct ResultType<Res Class::*> {
     using type = Res;
 };
 
+template <typename Res, typename Class, typename... Args>
+struct ResultType<Res Class::*(Args...)> {
+    using type = Res;
+};
+
+template <typename Res, typename... Args>
+struct ResultType<Res(Args...)> {
+    using type = Res;
+};
+
 namespace detail
 {
 struct NoOp {

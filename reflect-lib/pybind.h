@@ -439,7 +439,7 @@ public:
 
     std::unique_ptr<T>& get() { return p_; }
     std::unique_ptr<T> const& getConst() const { return p_; }
-    std::unique_ptr<T> && getRvalue() { return std::move(p_); }
+    std::unique_ptr<T> && getRValue() { return std::move(p_); }
 
 private:
     UniquePtrReference(T* p) : p_(p) {}
@@ -473,7 +473,7 @@ template <typename P, typename D>
 struct ArgumentConverter<std::unique_ptr<P, D>&&> {
     static std::unique_ptr<P, D> const& convert(UniquePtrReference<P>& p)
     {
-        return p.getRvalue();
+        return p.getRValue();
     }
 
     using PyType = typename GetArgumentType<decltype(convert)>::type;
@@ -512,6 +512,11 @@ struct ReturnValueConverter {
     }
 
     using PyType = CPPType;
+};
+
+template <>
+struct ReturnValueConverter<void> {
+    using PyType = void;
 };
 
 template <typename P, typename D>
@@ -584,9 +589,10 @@ private:
     decltype(auto) static wrap_method(MemberFctPtr member_ptr,
                                       Res (Class::*)(Args...))
     {
-        return [member_ptr](
-                   Class& c,
-                   typename ArgumentConverter<Args>::PyType... args) -> Res {
+        return [member_ptr](Class & c,
+                            typename ArgumentConverter<Args>::PyType... args) ->
+               typename ReturnValueConverter<Res>::PyType
+        {
             return ReturnValueConverter<Res>::convert((c.*member_ptr)(
                 ArgumentConverter<Args>::convert(std::forward<Args>(args))...));
         };
@@ -624,31 +630,12 @@ private:
         // add auxiliary bindings
         visit([&](auto t) { add_aux_type(t, module); },
               std::make_tuple(
-                  Type<typename std::decay<Res>::type>{},
+                  Type<typename std::decay<
+                      typename ReturnValueConverter<Res>::PyType>::type>{},
                   Type<typename std::decay<
                       typename ArgumentConverter<Args>::PyType>::type>{}...));
         c.def(name, wrapped_method, policy);
     }
-
-    // method returning std::unique_ptr
-    template<typename MemberFctPtr, typename UniqueT, typename UniqueD,
-        typename Class, typename... Args>
-    void op_impl(const char* name, MemberFctPtr member_ptr,
-            std::unique_ptr<UniqueT, UniqueD> (Class::*)(Args...)) const
-    {
-        // add auxiliary bindings
-        visit([&](auto t) {
-                add_aux_type(t, module);
-                }, std::make_tuple(Type<typename std::decay<UniqueT>::type>{},
-                    Type<typename std::decay<Args>::type>{}...));
-        auto f = [member_ptr](Class& c, Args... args) {
-            return smart_ptr<UniqueT>{
-                (c.*member_ptr)(std::forward<Args>(args)...).release()};
-        };
-        c.def(name, f);
-    }
-    // TODO returning unique_ptr&, unique_ptr const&
-    // TODO taking unique_ptr&, unique_ptr const&, unique_ptr&&, unique_ptr as argument?
 };
 
 template<typename Class, typename... Args>
