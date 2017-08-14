@@ -202,25 +202,58 @@ struct TypeFeatures
           is_copy_assignable, is_move_assignable>;
 };
 
-template <typename T>
-decltype(auto) add_aux_type_impl(T,
-                                 std::string const& /*mangled_type_name*/,
-                                 pybind11::module& /*m*/)
-{
-    return nullptr;
-}
+struct AddAuxTypeGeneric {
+    template <typename Fct>
+    static void add_type_checked(Fct&& f, std::string name, Module& m)
+    {
+        auto const mangled_name = mangle(name);
 
-// TODO: std::map, std::set, std::list, std::...
+        if (!pybind11::hasattr(m.aux_module, mangled_name.c_str())) {
+            auto const aux = f(mangled_name, m);
+
+            if (static_cast<bool>(aux)) {
+                if (m.all_types.contains(name.c_str()))
+                    throw std::logic_error(
+                        "Binding present in all_types, but not yet in aux "
+                        "module.");
+                if (m.aux_types.contains(name.c_str()))
+                    throw std::logic_error(
+                        "Binding present in aux_types, but not yet in aux "
+                        "module.");
+
+                m.all_types[name.c_str()] = aux;
+                m.aux_types[name.c_str()] = aux;
+            }
+        }
+    }
+};
+
+template <typename T>
+struct AddAuxType {
+    static void add(Module& /*m*/) {}
+};
+
 template <typename VecElem, typename VecAlloc>
-decltype(auto) add_aux_type_impl(Type<std::vector<VecElem, VecAlloc>>,
-                                 std::string const& mangled_type_name,
-                                 pybind11::module& m)
+struct AddAuxType<std::vector<VecElem, VecAlloc>>
 {
+private:
     using Vec = std::vector<VecElem, VecAlloc>;
-    auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-        m, mangled_type_name, pybind11::buffer_protocol());
-    return vec_c;
-}
+
+public:
+    static void add(Module& m)
+    {
+        auto const type_name =
+            demangle(typeid(Vec).name());
+
+        AddAuxTypeGeneric::add_type_checked([](
+            std::string const& mangled_type_name,
+            Module& m) {
+            auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
+                m.aux_module, mangled_type_name, pybind11::buffer_protocol());
+            return vec_c;
+        }, type_name, m);
+    }
+};
 
 template <typename T>
 void add_aux_type(Type<T> t, Module& m)
@@ -241,24 +274,7 @@ void add_aux_type(Type<T> t, Module& m)
                           .template cast<pybind11::dict>();
     }
 
-    auto const type_name = demangle(typeid(T).name());
-    auto const mangled_type_name = mangle(type_name);
-
-    if (!pybind11::hasattr(m.aux_module, mangled_type_name.c_str())) {
-        auto const aux = add_aux_type_impl(t, mangled_type_name, m.aux_module);
-
-        if (static_cast<bool>(aux)) {
-            if (m.all_types.contains(type_name.c_str()))
-                throw std::logic_error(
-                    "Binding present in all_types, but not yet in aux module.");
-            if (m.aux_types.contains(type_name.c_str()))
-                throw std::logic_error(
-                    "Binding present in aux_types, but not yet in aux module.");
-
-            m.all_types[type_name.c_str()] = aux;
-            m.aux_types[type_name.c_str()] = aux;
-        }
-    }
+    AddAuxType<T>::add(m);
 }
 
 template<typename PybindClass>
