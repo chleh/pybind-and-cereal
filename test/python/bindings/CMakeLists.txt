@@ -1,4 +1,5 @@
 add_subdirectory(types_one)
+add_subdirectory(test_unique_ptr)
 
 # TODO What if two different projects have bindings generated with this
 # library and are used in the same python code afterwards?

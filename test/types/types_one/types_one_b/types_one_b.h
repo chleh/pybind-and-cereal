@@ -42,13 +42,6 @@ struct Derived3 : Base {
         return p;
     }
 
-    int get_int_from_unique_ptr(
-        std::unique_ptr<types_one::types_one_a::NoCopy> const& p)
-    {
-        if (p) return 2* (p->i);
-        return 0;
-    }
-
     int nocopy_method_arg(types_one::types_one_a::NoCopy const& nc)
     {
         return nc.i;

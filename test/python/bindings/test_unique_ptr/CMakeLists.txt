@@ -1,0 +1,2 @@
+reflect_lib_add_python_module(test_unique_ptr test_unique_ptr.cpp)
+reflect_lib_target_link_libraries(test_unique_ptr PRIVATE reflection)
