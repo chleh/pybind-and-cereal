@@ -43,6 +43,42 @@ struct Module {
 
 namespace detail
 {
+template <typename T>
+class UniquePtrReference
+{
+public:
+    static UniquePtrReference<T> new_copied(reflect_lib::smart_ptr<T> const& p)
+    {
+        return UniquePtrReference<T>{p.new_copied()};
+    }
+    static UniquePtrReference<T> new_moved(reflect_lib::smart_ptr<T> const& p)
+    {
+        return UniquePtrReference<T>{p.new_moved()};
+    }
+
+    std::unique_ptr<T>& get() { return p_; }
+    std::unique_ptr<T> const& getConst() const { return p_; }
+    std::unique_ptr<T> && getRValue() { return std::move(p_); }
+
+private:
+    UniquePtrReference(T* p) : p_(p) {}
+    std::unique_ptr<T> p_;
+};
+
+template <typename T>
+UniquePtrReference<T>
+copy_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
+{
+    return UniquePtrReference<T>::new_copied(p);
+}
+
+template <typename T>
+UniquePtrReference<T>
+move_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
+{
+    return UniquePtrReference<T>::new_moved(p);
+}
+
 // derived class
 template <typename Class, typename... Options>
 decltype(auto) bind_class(pybind11::module& module, std::false_type)
@@ -134,7 +170,7 @@ template <class Class, class... Options, typename... Ts>
 decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>&c ,
                              std::tuple<Ts...>*, std::false_type)
 {
-    std::cout << "no special ctors\n";
+    // std::cout << "no special ctors\n";
     return c;
 }
 
@@ -142,7 +178,7 @@ template <class Class, class... Options, typename... Ts>
 decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
                              std::tuple<Ts...>*, std::true_type)
 {
-    std::cout << "some special ctors\n";
+    // std::cout << "some special ctors\n";
     return c.def(pybind11::init<Ts...>());;
 }
 
@@ -150,12 +186,14 @@ template <class Class, class... Options, typename... Ts>
 decltype(auto)
 add_ctor_impl(pybind11::class_<Class, Options...>& c, std::tuple<Ts...>* t)
 {
+#if 0
     std::cout << "ZZ " << demangle(typeid(Class).name()) << '\n';
     std::cout << "zz "
               << demangle(
                      typeid(std::tuple<typename std::remove_const<Ts>::type...>)
                          .name())
               << '\n';
+#endif
     return add_ctor_impl(
         c, t, std::is_constructible<Class,
                                     typename std::remove_const<Ts>::type...>{});
@@ -256,11 +294,36 @@ public:
 };
 
 template <typename T>
+struct AddAuxType<UniquePtrReference<T>>
+{
+private:
+    using Ref = UniquePtrReference<T>;
+
+public:
+    static void add(Module& m)
+    {
+        auto const type_name = demangle(typeid(Ref).name());
+
+        AddAuxTypeGeneric::add_type_checked(
+            [](std::string const& mangled_type_name, Module& m) {
+                auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
+                    m.aux_module, mangled_type_name);
+                return ref_c;
+            },
+            type_name, m);
+
+        // TODO avoid duplicate bindings
+        m.aux_module.def("copy_to_unique_ptr", &copy_to_unique_ptr<Ref>);
+        m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<Ref>);
+    }
+};
+
+template <typename T>
 void add_aux_type(Type<T> t, Module& m)
 {
     // TODO this procedure might create lots of duplicate binding code in many
     // different modules
-    std::cout << "binding aux " << typeid(T).name() << '\n';
+    // std::cout << "binding aux " << typeid(T).name() << '\n';
 
     if (!m.aux_module) {
         // TODO make auxiliary module name configurable?
@@ -437,30 +500,6 @@ template<typename Class, typename... Args>
 DefFieldsVisitor<Class> makeDefFieldsVisitor(Class& c, Args&&... args) {
     return DefFieldsVisitor<Class>{c, std::forward<Args>(args)...};
 }
-
-
-
-template <typename T>
-class UniquePtrReference
-{
-public:
-    static UniquePtrReference<T> new_copied(reflect_lib::smart_ptr<T> const& p)
-    {
-        return UniquePtrReference<T>{p.new_copied()};
-    }
-    static UniquePtrReference<T> new_moved(reflect_lib::smart_ptr<T> const& p)
-    {
-        return UniquePtrReference<T>{p.new_moved()};
-    }
-
-    std::unique_ptr<T>& get() { return p_; }
-    std::unique_ptr<T> const& getConst() const { return p_; }
-    std::unique_ptr<T> && getRValue() { return std::move(p_); }
-
-private:
-    UniquePtrReference(T* p) : p_(p) {}
-    std::unique_ptr<T> p_;
-};
 
 
 // argument converters /////////////////////////////////////////////////////////
