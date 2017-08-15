@@ -307,14 +307,14 @@ public:
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
                 auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
-                    m.aux_module, mangled_type_name);
+                    m.aux_module, mangled_type_name.c_str());
                 return ref_c;
             },
             type_name, m);
 
         // TODO avoid duplicate bindings
-        m.aux_module.def("copy_to_unique_ptr", &copy_to_unique_ptr<Ref>);
-        m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<Ref>);
+        m.aux_module.def("copy_to_unique_ptr", &copy_to_unique_ptr<T>);
+        m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<T>);
     }
 };
 
@@ -521,17 +521,17 @@ struct ArgumentConverter<std::unique_ptr<P, D>> {
         return p.getRValue();
     }
 
-    using PyType = typename GetArgumentType<decltype(convert)>::type;
+    using PyType = UniquePtrReference<P>&;
 };
 
 template <typename P, typename D>
 struct ArgumentConverter<std::unique_ptr<P, D>&&> {
-    static std::unique_ptr<P, D> const& convert(UniquePtrReference<P>& p)
+    static std::unique_ptr<P, D>&& convert(UniquePtrReference<P>& p)
     {
         return p.getRValue();
     }
 
-    using PyType = typename GetArgumentType<decltype(convert)>::type;
+    using PyType = UniquePtrReference<P>&;
 };
 
 template <typename P, typename D>
@@ -541,7 +541,7 @@ struct ArgumentConverter<std::unique_ptr<P, D>&> {
         return p.get();
     }
 
-    using PyType = typename GetArgumentType<decltype(convert)>::type;
+    using PyType = UniquePtrReference<P>&;
 };
 
 template <typename P, typename D>
@@ -551,7 +551,7 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
         return p.getConst();
     }
 
-    using PyType = typename GetArgumentType<decltype(convert)>::type;
+    using PyType = UniquePtrReference<P> const&;
 };
 
 // end argument converters /////////////////////////////////////////////////////
@@ -648,8 +648,10 @@ private:
                             typename ArgumentConverter<Args>::PyType... args) ->
                typename ReturnValueConverter<Res>::PyType
         {
-            return ReturnValueConverter<Res>::convert((c.*member_ptr)(
-                ArgumentConverter<Args>::convert(std::forward<Args>(args))...));
+            return ReturnValueConverter<Res>::convert(
+                (c.*member_ptr)(ArgumentConverter<Args>::convert(
+                    std::forward<typename ArgumentConverter<Args>::PyType>(
+                        args))...));
         };
     }
 
@@ -659,8 +661,9 @@ private:
     {
         return [member_ptr](Class& c,
                             typename ArgumentConverter<Args>::PyType... args) {
-            (c.*member_ptr)(
-                ArgumentConverter<Args>::convert(std::forward<Args>(args))...);
+            (c.*member_ptr)(ArgumentConverter<Args>::convert(
+                std::forward<typename ArgumentConverter<Args>::PyType>(
+                    args))...);
         };
     }
 
