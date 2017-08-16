@@ -31,6 +31,14 @@ class TestMethodArgsReturns(unittest.TestCase):
         self.assertEqual(5*upt.i, upt.i_up_rr(ref))
         self.assertEqual(7*upt.i, upt.i_up(ref))
 
+    def test_rvalue_args(self):
+        rvt = test_unique_ptr.RValueRefTest()
+        rvt.i = 42
+
+        ref = aux.copy_to_rvalue_reference(rvt)
+
+        self.assertEqual(2*rvt.i, rvt.f(ref))
+
 if __name__ == '__main__':
     unittest.main()
 
