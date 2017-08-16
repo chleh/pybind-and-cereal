@@ -79,6 +79,41 @@ move_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
     return UniquePtrReference<T>::new_moved(p);
 }
 
+template <typename T>
+class RValueReference
+{
+public:
+    static RValueReference<T> new_copied(reflect_lib::smart_ptr<T> const& p)
+    {
+        return RValueReference<T>{p.new_copied()};
+    }
+    static RValueReference<T> new_moved(reflect_lib::smart_ptr<T> const& p)
+    {
+        return RValueReference<T>{p.new_moved()};
+    }
+
+    T&& get() { return std::move(*p_); }
+
+private:
+    RValueReference(T* p) : p_(p) {}
+    std::unique_ptr<T> p_;
+};
+
+template <typename T>
+RValueReference<T>
+copy_to_rvalue_reference(reflect_lib::smart_ptr<T> const& p)
+{
+    return RValueReference<T>::new_copied(p);
+}
+
+template <typename T>
+RValueReference<T>
+move_to_rvalue_reference(reflect_lib::smart_ptr<T> const& p)
+{
+    return RValueReference<T>::new_moved(p);
+}
+
+
 // derived class
 template <typename Class, typename... Options>
 decltype(auto) bind_class(pybind11::module& module, std::false_type)
@@ -319,6 +354,33 @@ public:
 };
 
 template <typename T>
+struct AddAuxType<RValueReference<T>>
+{
+private:
+    using Ref = RValueReference<T>;
+
+public:
+    static void add(Module& m)
+    {
+        auto const type_name = demangle(typeid(Ref).name());
+
+        AddAuxTypeGeneric::add_type_checked(
+            [](std::string const& mangled_type_name, Module& m) {
+                auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
+                    m.aux_module, mangled_type_name.c_str());
+                return ref_c;
+            },
+            type_name, m);
+
+        // TODO avoid duplicate bindings
+        m.aux_module.def("copy_to_rvalue_reference",
+                         &copy_to_rvalue_reference<T>);
+        m.aux_module.def("move_to_rvalue_reference",
+                         &move_to_rvalue_reference<T>);
+    }
+};
+
+template <typename T>
 void add_aux_type(Type<T> t, Module& m)
 {
     // TODO this procedure might create lots of duplicate binding code in many
@@ -506,12 +568,24 @@ DefFieldsVisitor<Class> makeDefFieldsVisitor(Class& c, Args&&... args) {
 
 template <typename CPPType>
 struct ArgumentConverter {
-    static decltype(auto) convert(CPPType&& o)
+    using PyType = CPPType;
+
+    static decltype(auto) convert(PyType&& o)
     {
-        return std::forward<CPPType>(o);
+        return std::forward<PyType>(o);
+    }
+};
+
+template <typename CPPType>
+struct ArgumentConverter<CPPType&&> {
+    static CPPType&& convert(RValueReference<CPPType>& o)
+    {
+        return o.get();
     }
 
-    using PyType = CPPType;
+    // TODO static_assert that this is reference type? (for all
+    // ArgumentConverter types)
+    using PyType = RValueReference<CPPType>&;
 };
 
 template <typename P, typename D>
