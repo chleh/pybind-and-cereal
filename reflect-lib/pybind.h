@@ -114,6 +114,164 @@ move_to_rvalue_reference(reflect_lib::smart_ptr<T> const& p)
 }
 
 
+// argument converters /////////////////////////////////////////////////////////
+
+template <typename CPPType>
+struct ArgumentConverter {
+    using PyType = CPPType;
+
+// TODO why does it work without the overloads?
+#if 0
+    // static CPPType&& convert(PyType&& o) { return std::move(o); }
+    template <typename T>
+    static CPPType&& convert(
+        typename std::decay<T>::type&& o,
+        typename std::enable_if<!std::is_same<T, PyType const>::value,
+                                PyType&>::type* = nullptr)
+    {
+        std::cout << "conversion &&! " << demangle(typeid(PyType).name())
+                  << '\n';
+        return o;
+    }
+    template <typename T>
+    static CPPType& convert(
+        typename std::decay<T>::type& o,
+        typename std::enable_if<!std::is_same<T, PyType const>::value,
+                                PyType&>::type* = nullptr)
+    {
+        std::cout << "conversion &! " << demangle(typeid(PyType).name())
+                  << '\n';
+        return o;
+    }
+#endif
+    static CPPType const& convert(PyType const& o)
+    {
+        // std::cout << "conversion const&! " << demangle(typeid(PyType).name())
+        //           << '\n';
+        return o;
+    }
+};
+
+template <typename CPPType>
+struct ArgumentConverter<CPPType&&> {
+    static CPPType&& convert(RValueReference<CPPType>& o)
+    {
+        return o.get();
+    }
+
+    // TODO static_assert that this is reference type? (for all
+    // ArgumentConverter types)
+    using PyType = RValueReference<CPPType>&;
+};
+
+template <typename P, typename D>
+struct ArgumentConverter<std::unique_ptr<P, D>> {
+    static std::unique_ptr<P, D>&& convert(UniquePtrReference<P>& p)
+    {
+        return p.getRValue();
+    }
+
+    using PyType = UniquePtrReference<P>&;
+};
+
+template <typename P, typename D>
+struct ArgumentConverter<std::unique_ptr<P, D>&&> {
+    static std::unique_ptr<P, D>&& convert(UniquePtrReference<P>& p)
+    {
+        return p.getRValue();
+    }
+
+    using PyType = UniquePtrReference<P>&;
+};
+
+template <typename P, typename D>
+struct ArgumentConverter<std::unique_ptr<P, D>&> {
+    static std::unique_ptr<P, D>& convert(UniquePtrReference<P>& p)
+    {
+        return p.get();
+    }
+
+    using PyType = UniquePtrReference<P>&;
+};
+
+template <typename P, typename D>
+struct ArgumentConverter<std::unique_ptr<P, D> const&> {
+    static std::unique_ptr<P, D> const& convert(UniquePtrReference<P> const& p)
+    {
+        return p.getConst();
+    }
+
+    using PyType = UniquePtrReference<P> const&;
+};
+
+// end argument converters /////////////////////////////////////////////////////
+
+
+// return value converters /////////////////////////////////////////////////////
+
+template <typename CPPType>
+struct ReturnValueConverter {
+    static decltype(auto) convert(CPPType&& o)
+    {
+        return std::forward<CPPType>(o);
+    }
+
+    using PyType = CPPType;
+};
+
+template <>
+struct ReturnValueConverter<void> {
+    using PyType = void;
+};
+
+template <typename P, typename D>
+struct ReturnValueConverter<std::unique_ptr<P, D>> {
+    static smart_ptr<P> convert(std::unique_ptr<P, D> p)
+    {
+        // TODO: might create wrong copy/move function!
+        return smart_ptr<P>(p.release());
+    }
+
+    using PyType = typename ResultType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ReturnValueConverter<std::unique_ptr<P, D>&&> {
+    static std::unique_ptr<P, D> const& convert(std::unique_ptr<P, D>&& p)
+    {
+        // TODO: might create wrong copy/move function!
+        return smart_ptr<P>(p.release());
+    }
+
+    using PyType = typename ResultType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ReturnValueConverter<std::unique_ptr<P, D>&> {
+    static UniquePtrReference<P> convert(std::unique_ptr<P, D>& p)
+    {
+        return UniquePtrReference<P>(p.get());
+    }
+
+    using PyType = typename ResultType<decltype(convert)>::type;
+};
+
+template <typename P, typename D>
+struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
+    static UniquePtrReference<P> convert(std::unique_ptr<P, D> const& p)
+    {
+        // TODO maybe just return p.get() ?
+        return UniquePtrReference<P>(p.get());
+    }
+
+    using PyType = typename ResultType<decltype(convert)>::type;
+};
+
+// end return value converters /////////////////////////////////////////////////
+
+template <typename T>
+void add_aux_type(Type<T> t, Module& m);
+
 // derived class
 template <typename Class, typename... Options>
 decltype(auto) bind_class(pybind11::module& module, std::false_type)
@@ -202,26 +360,39 @@ public:
 };
 
 template <class Class, class... Options, typename... Ts>
-decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>&c ,
+decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c, Module&,
                              std::tuple<Ts...>*, std::false_type)
 {
-    // std::cout << "no special ctors\n";
+    std::cout << "  no special ctors\n";
     return c;
 }
 
 template <class Class, class... Options, typename... Ts>
 decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
-                             std::tuple<Ts...>*, std::true_type)
+                             Module& module, std::tuple<Ts...>*, std::true_type)
 {
-    // std::cout << "some special ctors\n";
-    return c.def(pybind11::init<Ts...>());;
+    std::cout << "  some special ctors\n";
+
+    // add auxiliary bindings
+    visit([&](auto t) { add_aux_type(t, module); },
+          std::make_tuple(
+              Type<typename std::decay<
+                  typename ArgumentConverter<Ts>::PyType>::type>{}...));
+
+    // return c.def(pybind11::init<typename
+    // ArgumentConverter<Ts>::PyType...>());
+    return c.def(
+        "__init__",
+        [](Class& instance, typename ArgumentConverter<Ts>::PyType... args) {
+            new (&instance) Class(ArgumentConverter<Ts>::convert(args)...);
+        });
 }
 
 template <class Class, class... Options, typename... Ts>
-decltype(auto)
-add_ctor_impl(pybind11::class_<Class, Options...>& c, std::tuple<Ts...>* t)
+decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
+                             Module& module, std::tuple<Ts...>* t)
 {
-#if 0
+#if 1
     std::cout << "ZZ " << demangle(typeid(Class).name()) << '\n';
     std::cout << "zz "
               << demangle(
@@ -230,19 +401,20 @@ add_ctor_impl(pybind11::class_<Class, Options...>& c, std::tuple<Ts...>* t)
               << '\n';
 #endif
     return add_ctor_impl(
-        c, t, std::is_constructible<Class,
-                                    typename std::remove_const<Ts>::type...>{});
+        c, module, t,
+        std::is_constructible<Class,
+                              typename std::remove_const<Ts>::type...>{});
 }
 
 // TODO trampoline classes
 template <class Class, class... Options, typename... Ts>
-decltype(auto)
-add_ctor(pybind11::class_<Class, Options...>& c, std::tuple<Ts...>)
+decltype(auto) add_ctor(pybind11::class_<Class, Options...>& c,
+                        std::tuple<Ts...>, Module& module)
 {
     using FieldTypes = typename GetFieldTypes<Ts...>::type;
     std::cout << "XX " << demangle(typeid(FieldTypes).name()) << '\n';
 
-    return add_ctor_impl(c, static_cast<FieldTypes*>(nullptr));
+    return add_ctor_impl(c, module, static_cast<FieldTypes*>(nullptr));
 }
 
 template<typename T>
@@ -563,137 +735,6 @@ DefFieldsVisitor<Class> makeDefFieldsVisitor(Class& c, Args&&... args) {
     return DefFieldsVisitor<Class>{c, std::forward<Args>(args)...};
 }
 
-
-// argument converters /////////////////////////////////////////////////////////
-
-template <typename CPPType>
-struct ArgumentConverter {
-    using PyType = CPPType;
-
-    static decltype(auto) convert(PyType&& o)
-    {
-        return std::forward<PyType>(o);
-    }
-};
-
-template <typename CPPType>
-struct ArgumentConverter<CPPType&&> {
-    static CPPType&& convert(RValueReference<CPPType>& o)
-    {
-        return o.get();
-    }
-
-    // TODO static_assert that this is reference type? (for all
-    // ArgumentConverter types)
-    using PyType = RValueReference<CPPType>&;
-};
-
-template <typename P, typename D>
-struct ArgumentConverter<std::unique_ptr<P, D>> {
-    static std::unique_ptr<P, D>&& convert(UniquePtrReference<P>& p)
-    {
-        return p.getRValue();
-    }
-
-    using PyType = UniquePtrReference<P>&;
-};
-
-template <typename P, typename D>
-struct ArgumentConverter<std::unique_ptr<P, D>&&> {
-    static std::unique_ptr<P, D>&& convert(UniquePtrReference<P>& p)
-    {
-        return p.getRValue();
-    }
-
-    using PyType = UniquePtrReference<P>&;
-};
-
-template <typename P, typename D>
-struct ArgumentConverter<std::unique_ptr<P, D>&> {
-    static std::unique_ptr<P, D>& convert(UniquePtrReference<P>& p)
-    {
-        return p.get();
-    }
-
-    using PyType = UniquePtrReference<P>&;
-};
-
-template <typename P, typename D>
-struct ArgumentConverter<std::unique_ptr<P, D> const&> {
-    static std::unique_ptr<P, D> const& convert(UniquePtrReference<P> const& p)
-    {
-        return p.getConst();
-    }
-
-    using PyType = UniquePtrReference<P> const&;
-};
-
-// end argument converters /////////////////////////////////////////////////////
-
-
-// return value converters /////////////////////////////////////////////////////
-
-template <typename CPPType>
-struct ReturnValueConverter {
-    static decltype(auto) convert(CPPType&& o)
-    {
-        return std::forward<CPPType>(o);
-    }
-
-    using PyType = CPPType;
-};
-
-template <>
-struct ReturnValueConverter<void> {
-    using PyType = void;
-};
-
-template <typename P, typename D>
-struct ReturnValueConverter<std::unique_ptr<P, D>> {
-    static smart_ptr<P> convert(std::unique_ptr<P, D> p)
-    {
-        // TODO: might create wrong copy/move function!
-        return smart_ptr<P>(p.release());
-    }
-
-    using PyType = typename ResultType<decltype(convert)>::type;
-};
-
-template <typename P, typename D>
-struct ReturnValueConverter<std::unique_ptr<P, D>&&> {
-    static std::unique_ptr<P, D> const& convert(std::unique_ptr<P, D>&& p)
-    {
-        // TODO: might create wrong copy/move function!
-        return smart_ptr<P>(p.release());
-    }
-
-    using PyType = typename ResultType<decltype(convert)>::type;
-};
-
-template <typename P, typename D>
-struct ReturnValueConverter<std::unique_ptr<P, D>&> {
-    static UniquePtrReference<P> convert(std::unique_ptr<P, D>& p)
-    {
-        return UniquePtrReference<P>(p.get());
-    }
-
-    using PyType = typename ResultType<decltype(convert)>::type;
-};
-
-template <typename P, typename D>
-struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
-    static UniquePtrReference<P> convert(std::unique_ptr<P, D> const& p)
-    {
-        // TODO maybe just return p.get() ?
-        return UniquePtrReference<P>(p.get());
-    }
-
-    using PyType = typename ResultType<decltype(convert)>::type;
-};
-
-// end return value converters /////////////////////////////////////////////////
-
-
 template<typename PybindClass>
 struct DefMethodsVisitor
 {
@@ -804,7 +845,7 @@ pybind11::class_<Class, Options...> Module::bind()
 
     // add constructor
     detail::add_ctor(c);
-    detail::add_ctor(c, Class::Meta::fields());
+    detail::add_ctor(c, Class::Meta::fields(), *this);
 
     // add data fields
     visit(detail::makeDefFieldsVisitor(c, *this),
