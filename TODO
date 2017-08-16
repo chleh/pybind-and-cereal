@@ -15,7 +15,7 @@
     [ ] early binding/static dispatch of methods
 [ ] static methods
 [v] check is_default_constructible
-[ ] guess some constructors, e.g. a constructor taking all the direct data members in
+[v] guess some constructors, e.g. a constructor taking all the direct data members in
     the order defined by the reflection
 [/] custom ctors
 [v] copy constructor, but not move ctor (because not supported by python)
@@ -48,8 +48,7 @@
     [ ] write tests for that
 [ ] overloaded methods (don't fit the current macros), check py::overload_cast
     maybe add REFLECT_FULL(...) macro
-[ ] functions with unique_ptr returns/args
-[ ] test std::vector<std::unique_ptr<T>>
+[v] functions with unique_ptr returns/args
 [v] "Unable to load a custom holder type from a default-holder instance"
     e.g., with std::vector<int>
     [x] maybe circumvent by globally setting the pybind11 holder type
@@ -62,6 +61,10 @@
 [ ] serialization
     [ ] objects with non-default ctors
     [ ] split serialization code across multiple compilation units
+[ ] check recursive aux type detection
+    [ ] test std::vector<std::unique_ptr<T>>
+[v] argument converters for ctors
+[ ] argument converters for move-only fields
 
 
 Non-Features
