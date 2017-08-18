@@ -65,6 +65,7 @@
     [ ] test std::vector<std::unique_ptr<T>>
 [v] argument converters for ctors
 [ ] argument converters for move-only fields
+[ ] test passing base and derived types to copy_to_unique_ptr etc.
 
 
 Non-Features
