@@ -79,21 +79,6 @@ private:
     bool cleanup_;
 };
 
-template <>
-class UniquePtrReference<std::nullptr_t>
-{
-};
-
-inline UniquePtrReference<std::nullptr_t> copy_to_unique_ptr(std::nullptr_t)
-{
-    return UniquePtrReference<std::nullptr_t>{};
-}
-
-inline UniquePtrReference<std::nullptr_t> move_to_unique_ptr(std::nullptr_t)
-{
-    return UniquePtrReference<std::nullptr_t>{};
-}
-
 template <typename T>
 UniquePtrReference<T> copy_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
 {
@@ -242,10 +227,15 @@ struct ArgumentConverter<std::unique_ptr<P, D>> {
 
     static CPPType convert(PyType o)
     {
-        if (o.is_none())
+        if (o.is_none()) {
+            none<P, D>.reset();
             return std::move(none<P, D>);
-        if (auto* p = o.cast<UniquePtrReference<P>*>())
+        }
+        try {
+            auto* p = o.cast<UniquePtrReference<P>*>();
             return p->getRValue();
+        } catch (pybind11::cast_error) {}
+        // TODO better error message
         throw pybind11::type_error("ERR.");
     }
 };
@@ -258,10 +248,14 @@ struct ArgumentConverter<std::unique_ptr<P, D>&&> {
 
     static CPPType convert(PyType o)
     {
-        if (o.is_none())
+        if (o.is_none()) {
+            none<P, D>.reset();
             return std::move(none<P, D>);
-        if (auto* p = o.cast<UniquePtrReference<P>*>())
+        }
+        try {
+            auto* p = o.cast<UniquePtrReference<P>*>();
             return p->getRValue();
+        } catch (pybind11::cast_error) {}
         throw pybind11::type_error("ERR.");
     }
 };
@@ -274,10 +268,14 @@ struct ArgumentConverter<std::unique_ptr<P, D>&> {
 
     static CPPType convert(PyType o)
     {
-        if (o.is_none())
+        if (o.is_none()) {
+            none<P, D>.reset();
             return none<P, D>;
-        if (auto* p = o.cast<UniquePtrReference<P>*>())
+        }
+        try {
+            auto* p = o.cast<UniquePtrReference<P>*>();
             return p->get();
+        } catch (pybind11::cast_error) {}
         throw pybind11::type_error("ERR.");
     }
 };
@@ -290,10 +288,14 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
 
     static CPPType convert(PyType o)
     {
-        if (o.is_none())
+        if (o.is_none()) {
+            none<P, D>.reset();
             return none<P, D>;
-        if (auto* p = o.cast<UniquePtrReference<P>*>())
+        }
+        try {
+            auto* p = o.cast<UniquePtrReference<P>*>();
             return p->getConst();
+        } catch (pybind11::cast_error) {}
         throw pybind11::type_error("ERR.");
     }
 };
@@ -631,36 +633,13 @@ public:
             m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<T>,
                              pybind11::arg().none(false));
 
-            add_aux_type(Type<UniquePtrReference<std::nullptr_t>>{}, m);
-        }
-    }
-};
-
-template <>
-struct AddAuxType<UniquePtrReference<std::nullptr_t>> {
-private:
-    using Ref = UniquePtrReference<std::nullptr_t>;
-
-public:
-    static void add(Module& m)
-    {
-        auto const type_name = demangle(typeid(Ref).name());
-
-        if (AddAuxTypeGeneric::add_type_checked(
-                [](std::string const& mangled_type_name, Module& m) {
-                    auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
-                        m.aux_module, mangled_type_name.c_str());
-                    return ref_c;
-                },
-                type_name, m)) {
-            m.aux_module.def(
-                "copy_to_unique_ptr",
-                (UniquePtrReference<std::nullptr_t>(*)(std::nullptr_t)) &
-                    copy_to_unique_ptr);
-            m.aux_module.def(
-                "move_to_unique_ptr",
-                (UniquePtrReference<std::nullptr_t>(*)(std::nullptr_t)) &
-                    move_to_unique_ptr);
+            // TODO duplicate bindings problem?
+            m.aux_module.def("copy_to_unique_ptr", [](std::nullptr_t) {
+                return nullptr;
+            });
+            m.aux_module.def("move_to_unique_ptr", [](std::nullptr_t) {
+                return nullptr;
+            });
         }
     }
 };
