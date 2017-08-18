@@ -34,7 +34,7 @@ struct Derived1 : Base {
 struct Derived2 : Base {
     bool b;
 
-    std::string what() override { return "der2"; };
+    std::string what() override { return "der2"; }
 
     REFLECT_DERIVED((Derived2), (Base), FIELDS(b), METHODS())
 };

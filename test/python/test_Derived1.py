@@ -48,30 +48,22 @@ class TestDerived1(unittest.TestCase):
     def test_method_overridden(self):
         self.assertEqual("der1", self.d1.what())
 
-    def test_member_accessor_write_only(self):
-        # ...__COPY_IN and ...__MOVE_IN are for write access only
-        with self.assertRaises(KeyError):
-            a = self.d1.b__COPY_IN
-
-        with self.assertRaises(KeyError):
-            a = self.d1.b__MOVE_IN
-
     def test_move_assignment(self):
         tmp = types_one.types_one_a.types_one_a_a.Derived1()
         tmp.s = "tmp"
 
-        self.d1.b__MOVE_IN = tmp
+        self.d1.b = aux.move_to_unique_ptr(tmp)
 
         self.assertEqual("tmp", self.d1.b.s)
         self.assertEqual("", tmp.s)
 
         ### unique_ptr holding non-copyable type
-        self.d1.ncp__MOVE_IN = types_one.types_one_a.NoCopy()
+        self.d1.ncp = aux.move_to_unique_ptr(types_one.types_one_a.NoCopy())
         self.assertIsNotNone(self.d1.ncp)
 
         with self.assertRaises(TypeError):
             # incompatible types
-            self.d1.ncp__MOVE_IN = types_one.types_one_a.types_one_a_a.Derived1()
+            self.d1.ncp = aux.move_to_unique_ptr(types_one.types_one_a.types_one_a_a.Derived1())
 
         self.assertIsNotNone(self.d1.ncp)
 
