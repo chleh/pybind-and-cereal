@@ -80,6 +80,21 @@ private:
     bool cleanup_;
 };
 
+template <>
+class UniquePtrReference<std::nullptr_t>
+{
+};
+
+inline UniquePtrReference<std::nullptr_t> copy_to_unique_ptr(std::nullptr_t)
+{
+    return UniquePtrReference<std::nullptr_t>{};
+}
+
+inline UniquePtrReference<std::nullptr_t> move_to_unique_ptr(std::nullptr_t)
+{
+    return UniquePtrReference<std::nullptr_t>{};
+}
+
 template <typename T>
 UniquePtrReference<T>
 copy_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
@@ -169,6 +184,7 @@ struct ArgumentConverterImpl {
     }
 };
 
+// TODO: type that is neither copyable nor movable
 // not copy constructible CPPType_
 template <typename CPPType_>
 struct ArgumentConverterImpl<CPPType_, false> {
@@ -582,8 +598,42 @@ public:
             type_name, m);
 
         // TODO avoid duplicate bindings
-        m.aux_module.def("copy_to_unique_ptr", &copy_to_unique_ptr<T>);
-        m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<T>);
+        m.aux_module.def("copy_to_unique_ptr", &copy_to_unique_ptr<T>,
+                         pybind11::arg().none(false));
+        m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<T>,
+                         pybind11::arg().none(false));
+
+        add_aux_type(Type<UniquePtrReference<std::nullptr_t>>{}, m);
+    }
+};
+
+template <>
+struct AddAuxType<UniquePtrReference<std::nullptr_t>>
+{
+private:
+    using Ref = UniquePtrReference<std::nullptr_t>;
+
+public:
+    static void add(Module& m)
+    {
+        auto const type_name = demangle(typeid(Ref).name());
+
+        AddAuxTypeGeneric::add_type_checked(
+            [](std::string const& mangled_type_name, Module& m) {
+                auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
+                    m.aux_module, mangled_type_name.c_str());
+                return ref_c;
+            },
+            type_name, m);
+
+        m.aux_module.def(
+            "copy_to_unique_ptr",
+            (UniquePtrReference<std::nullptr_t>(*)(std::nullptr_t)) &
+                copy_to_unique_ptr);
+        m.aux_module.def(
+            "move_to_unique_ptr",
+            (UniquePtrReference<std::nullptr_t>(*)(std::nullptr_t)) &
+                move_to_unique_ptr);
     }
 };
 
@@ -608,9 +658,11 @@ public:
 
         // TODO avoid duplicate bindings
         m.aux_module.def("copy_to_rvalue_reference",
-                         &copy_to_rvalue_reference<T>);
+                         &copy_to_rvalue_reference<T>,
+                         pybind11::arg().none(false));
         m.aux_module.def("move_to_rvalue_reference",
-                         &move_to_rvalue_reference<T>);
+                         &move_to_rvalue_reference<T>,
+                         pybind11::arg().none(false));
     }
 };
 
@@ -685,6 +737,7 @@ private:
     void op_impl(const char* name, Res(Class::*member_ptr),
                  std::false_type /* is_const */) const
     {
+        // get reference Res&
         auto getter = pybind11::cpp_function(
             [member_ptr](Class & c) ->
             typename ReturnValueConverter<Res&>::PyType {
@@ -693,6 +746,7 @@ private:
             pybind11::is_method(this->c),
             pybind11::return_value_policy::reference_internal);
 
+        // set concrete type Res
         auto setter = [member_ptr](
             Class& c, typename ArgumentConverter<Res>::PyType value) {
             c.*member_ptr = ArgumentConverter<Res>::convert(
@@ -705,11 +759,11 @@ private:
                   Type<typename std::decay<
                       typename ReturnValueConverter<Res&>::PyType>::type>{},
                   Type<typename std::decay<
-                      typename ArgumentConverter<Res&>::PyType>::type>{}));
+                      typename ArgumentConverter<Res>::PyType>::type>{}));
         c.def_property(name, getter, setter);
     }
 
-#if 1
+#if 0
     template <typename MemberPtr, typename Res>
     void op_impl(std::pair<const char*, MemberPtr> const& name_member,
             Type<Res> t) const
