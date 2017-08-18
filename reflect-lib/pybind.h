@@ -40,7 +40,6 @@ struct Module {
     pybind11::dict aux_types;
 };
 
-
 namespace detail
 {
 template <typename T>
@@ -96,15 +95,13 @@ inline UniquePtrReference<std::nullptr_t> move_to_unique_ptr(std::nullptr_t)
 }
 
 template <typename T>
-UniquePtrReference<T>
-copy_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
+UniquePtrReference<T> copy_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
 {
     return UniquePtrReference<T>::new_copied(p);
 }
 
 template <typename T>
-UniquePtrReference<T>
-move_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
+UniquePtrReference<T> move_to_unique_ptr(reflect_lib::smart_ptr<T> const& p)
 {
     return UniquePtrReference<T>::new_moved(p);
 }
@@ -130,19 +127,16 @@ private:
 };
 
 template <typename T>
-RValueReference<T>
-copy_to_rvalue_reference(reflect_lib::smart_ptr<T> const& p)
+RValueReference<T> copy_to_rvalue_reference(reflect_lib::smart_ptr<T> const& p)
 {
     return RValueReference<T>::new_copied(p);
 }
 
 template <typename T>
-RValueReference<T>
-move_to_rvalue_reference(reflect_lib::smart_ptr<T> const& p)
+RValueReference<T> move_to_rvalue_reference(reflect_lib::smart_ptr<T> const& p)
 {
     return RValueReference<T>::new_moved(p);
 }
-
 
 // argument converters /////////////////////////////////////////////////////////
 
@@ -261,7 +255,6 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
 
 // end argument converters /////////////////////////////////////////////////////
 
-
 // return value converters /////////////////////////////////////////////////////
 
 template <typename CPPType>
@@ -304,10 +297,7 @@ struct ReturnValueConverter<std::unique_ptr<P, D>&&> {
 #if 1
 template <typename P, typename D>
 struct ReturnValueConverter<std::unique_ptr<P, D>&> {
-    static P* convert(std::unique_ptr<P, D>& p)
-    {
-        return p.get();
-    }
+    static P* convert(std::unique_ptr<P, D>& p) { return p.get(); }
 
     // TODO add return value policy!
     using PyType = P*;
@@ -315,10 +305,7 @@ struct ReturnValueConverter<std::unique_ptr<P, D>&> {
 
 template <typename P, typename D>
 struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
-    static P* convert(std::unique_ptr<P, D> const& p)
-    {
-        return p.get();
-    }
+    static P* convert(std::unique_ptr<P, D> const& p) { return p.get(); }
 
     using PyType = P*;
 };
@@ -356,8 +343,8 @@ decltype(auto) bind_class(pybind11::module& module, std::false_type)
 {
     static_assert(std::is_base_of<typename Class::Meta::base, Class>::value,
                   "The current class is not derived from the specified base.");
-    return pybind11::class_<Class, typename Class::Meta::base,
-                            smart_ptr<Class>, Options...>(
+    return pybind11::class_<Class, typename Class::Meta::base, smart_ptr<Class>,
+                            Options...>(
         module,
         mangle(strip_namespaces(demangle(Class::Meta::mangled_name())))
             .c_str());
@@ -374,36 +361,35 @@ decltype(auto) bind_class(pybind11::module& module, std::true_type)
 }
 
 template <class Class, class... Cs>
-decltype(auto)
-add_ctor_if_default_constructible(pybind11::class_<Class, Cs...>& c, std::true_type)
+decltype(auto) add_ctor_if_default_constructible(
+    pybind11::class_<Class, Cs...>& c, std::true_type)
 {
     return c.def(pybind11::init());
 }
 
 template <class Class, class... Cs>
-decltype(auto)
-add_ctor_if_default_constructible(pybind11::class_<Class, Cs...>& c, std::false_type)
+decltype(auto) add_ctor_if_default_constructible(
+    pybind11::class_<Class, Cs...>& c, std::false_type)
 {
     return c;
 }
 
 template <class Class, class... Cs>
-decltype(auto)
-add_ctor_if_copy_constructible(pybind11::class_<Class, Cs...>& c, std::true_type)
+decltype(auto) add_ctor_if_copy_constructible(pybind11::class_<Class, Cs...>& c,
+                                              std::true_type)
 {
     return c.def(pybind11::init<Class const&>());
 }
 
 template <class Class, class... Cs>
-decltype(auto)
-add_ctor_if_copy_constructible(pybind11::class_<Class, Cs...>& c, std::false_type)
+decltype(auto) add_ctor_if_copy_constructible(pybind11::class_<Class, Cs...>& c,
+                                              std::false_type)
 {
     return c;
 }
 
 template <class Class, class... Cs>
-decltype(auto)
-add_ctor(pybind11::class_<Class, Cs...>& c)
+decltype(auto) add_ctor(pybind11::class_<Class, Cs...>& c)
 {
     /* check for trampoline class */
     constexpr bool has_trampoline = pybind11::class_<Class, Cs...>::has_alias;
@@ -421,8 +407,7 @@ add_ctor(pybind11::class_<Class, Cs...>& c)
 }
 
 template <typename... Ts>
-struct GetFieldTypes
-{
+struct GetFieldTypes {
 private:
     using IndexSequence = std::index_sequence_for<Ts...>;
 
@@ -495,12 +480,11 @@ decltype(auto) add_ctor(pybind11::class_<Class, Options...>& c,
     return add_ctor_impl(c, module, static_cast<FieldTypes*>(nullptr));
 }
 
-template<typename T>
+template <typename T>
 struct GetClass;
 
-template<typename Res, typename Class>
-struct GetClass<Res Class::*>
-{
+template <typename Res, typename Class>
+struct GetClass<Res Class::*> {
     using type = Class;
 };
 
@@ -512,17 +496,16 @@ struct GetArgumentType<R C::*(A)> {
     using type = A;
 };
 
-template<typename T>
-struct TypeFeatures
-{
-    static constexpr bool is_copy_assignable
-        = std::is_copy_assignable<T>::value;
+template <typename T>
+struct TypeFeatures {
+    static constexpr bool is_copy_assignable =
+        std::is_copy_assignable<T>::value;
 
-    static constexpr bool is_move_assignable
-        = std::is_move_assignable<T>::value;
+    static constexpr bool is_move_assignable =
+        std::is_move_assignable<T>::value;
 
-    using features = std::integer_sequence<bool,
-          is_copy_assignable, is_move_assignable>;
+    using features =
+        std::integer_sequence<bool, is_copy_assignable, is_move_assignable>;
 };
 
 struct AddAuxTypeGeneric {
@@ -557,30 +540,28 @@ struct AddAuxType {
 };
 
 template <typename VecElem, typename VecAlloc>
-struct AddAuxType<std::vector<VecElem, VecAlloc>>
-{
+struct AddAuxType<std::vector<VecElem, VecAlloc>> {
 private:
     using Vec = std::vector<VecElem, VecAlloc>;
 
 public:
     static void add(Module& m)
     {
-        auto const type_name =
-            demangle(typeid(Vec).name());
+        auto const type_name = demangle(typeid(Vec).name());
 
-        AddAuxTypeGeneric::add_type_checked([](
-            std::string const& mangled_type_name,
-            Module& m) {
-            auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                m.aux_module, mangled_type_name, pybind11::buffer_protocol());
-            return vec_c;
-        }, type_name, m);
+        AddAuxTypeGeneric::add_type_checked(
+            [](std::string const& mangled_type_name, Module& m) {
+                auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
+                    m.aux_module, mangled_type_name,
+                    pybind11::buffer_protocol());
+                return vec_c;
+            },
+            type_name, m);
     }
 };
 
 template <typename T>
-struct AddAuxType<UniquePtrReference<T>>
-{
+struct AddAuxType<UniquePtrReference<T>> {
 private:
     using Ref = UniquePtrReference<T>;
 
@@ -608,8 +589,7 @@ public:
 };
 
 template <>
-struct AddAuxType<UniquePtrReference<std::nullptr_t>>
-{
+struct AddAuxType<UniquePtrReference<std::nullptr_t>> {
 private:
     using Ref = UniquePtrReference<std::nullptr_t>;
 
@@ -638,8 +618,7 @@ public:
 };
 
 template <typename T>
-struct AddAuxType<RValueReference<T>>
-{
+struct AddAuxType<RValueReference<T>> {
 private:
     using Ref = RValueReference<T>;
 
@@ -688,9 +667,8 @@ void add_aux_type(Type<T> t, Module& m)
     AddAuxType<T>::add(m);
 }
 
-template<typename PybindClass>
-struct DefFieldsVisitor
-{
+template <typename PybindClass>
+struct DefFieldsVisitor {
     PybindClass& c;
     reflect_lib::Module& module;
 
@@ -764,28 +742,32 @@ private:
     }
 };
 
-template<typename Class, typename... Args>
-DefFieldsVisitor<Class> makeDefFieldsVisitor(Class& c, Args&&... args) {
+template <typename Class, typename... Args>
+DefFieldsVisitor<Class> makeDefFieldsVisitor(Class& c, Args&&... args)
+{
     return DefFieldsVisitor<Class>{c, std::forward<Args>(args)...};
 }
 
-template<typename PybindClass>
-struct DefMethodsVisitor
-{
+template <typename PybindClass>
+struct DefMethodsVisitor {
     PybindClass& c;
     Module& module;
 
     template <typename MemberFctPtr>
-    void operator()(std::pair<const char*, MemberFctPtr> const& name_member) const
+    void operator()(
+        std::pair<const char*, MemberFctPtr> const& name_member) const
     {
         op_impl(name_member.first, name_member.second, name_member.second);
     }
 
 private:
-    template<typename MemberFctPtr, typename Res, typename Class, typename... Args>
-    void op_impl(const char* name, MemberFctPtr member_ptr, Res (Class::*)(Args...) const) const
+    template <typename MemberFctPtr, typename Res, typename Class,
+              typename... Args>
+    void op_impl(const char* name, MemberFctPtr member_ptr,
+                 Res (Class::*)(Args...) const) const
     {
-        op_impl(name, member_ptr, static_cast<Res (Class::*)(Args...)>(nullptr));
+        op_impl(name, member_ptr,
+                static_cast<Res (Class::*)(Args...)>(nullptr));
     }
 
     template <typename MemberFctPtr, typename Res, typename Class,
@@ -845,13 +827,13 @@ private:
     }
 };
 
-template<typename Class, typename... Args>
-DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args) {
+template <typename Class, typename... Args>
+DefMethodsVisitor<Class> makeDefMethodsVisitor(Class& c, Args&&... args)
+{
     return DefMethodsVisitor<Class>{c, std::forward<Args>(args)...};
 }
 
 }  // namespace detail
-
 
 template <typename Class, typename... Options>
 pybind11::class_<Class, Options...> Module::bind()
@@ -882,18 +864,16 @@ pybind11::class_<Class, Options...> Module::bind()
     detail::add_ctor(c, Class::Meta::fields(), *this);
 
     // add data fields
-    visit(detail::makeDefFieldsVisitor(c, *this),
-                  Class::Meta::fields());
+    visit(detail::makeDefFieldsVisitor(c, *this), Class::Meta::fields());
 
     // add methods
-    visit(detail::makeDefMethodsVisitor(c, *this),
-                  Class::Meta::methods());
+    visit(detail::makeDefMethodsVisitor(c, *this), Class::Meta::methods());
 
     return c;
 }
 
 #define CONCAT(a, b, c) CONCAT_(a, b, c)
-#define CONCAT_(a, b, c) a ## b ## c
+#define CONCAT_(a, b, c) a##b##c
 
 #define REFLECT_LIB_PYTHON_MODULE(name, variable) \
     APPLY(PYBIND11_MODULE,                        \
