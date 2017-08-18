@@ -510,7 +510,7 @@ struct TypeFeatures {
 
 struct AddAuxTypeGeneric {
     template <typename Fct>
-    static void add_type_checked(Fct&& f, std::string name, Module& m)
+    static bool add_type_checked(Fct&& f, std::string name, Module& m)
     {
         auto const mangled_name = mangle(name);
 
@@ -529,8 +529,12 @@ struct AddAuxTypeGeneric {
 
                 m.all_types[name.c_str()] = aux;
                 m.aux_types[name.c_str()] = aux;
+
+                return true;
             }
         }
+
+        return false;
     }
 };
 
@@ -570,21 +574,20 @@ public:
     {
         auto const type_name = demangle(typeid(Ref).name());
 
-        AddAuxTypeGeneric::add_type_checked(
-            [](std::string const& mangled_type_name, Module& m) {
-                auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
-                    m.aux_module, mangled_type_name.c_str());
-                return ref_c;
-            },
-            type_name, m);
+        if (AddAuxTypeGeneric::add_type_checked(
+                [](std::string const& mangled_type_name, Module& m) {
+                    auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
+                        m.aux_module, mangled_type_name.c_str());
+                    return ref_c;
+                },
+                type_name, m)) {
+            m.aux_module.def("copy_to_unique_ptr", &copy_to_unique_ptr<T>,
+                             pybind11::arg().none(false));
+            m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<T>,
+                             pybind11::arg().none(false));
 
-        // TODO avoid duplicate bindings
-        m.aux_module.def("copy_to_unique_ptr", &copy_to_unique_ptr<T>,
-                         pybind11::arg().none(false));
-        m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<T>,
-                         pybind11::arg().none(false));
-
-        add_aux_type(Type<UniquePtrReference<std::nullptr_t>>{}, m);
+            add_aux_type(Type<UniquePtrReference<std::nullptr_t>>{}, m);
+        }
     }
 };
 
@@ -598,22 +601,22 @@ public:
     {
         auto const type_name = demangle(typeid(Ref).name());
 
-        AddAuxTypeGeneric::add_type_checked(
-            [](std::string const& mangled_type_name, Module& m) {
-                auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
-                    m.aux_module, mangled_type_name.c_str());
-                return ref_c;
-            },
-            type_name, m);
-
-        m.aux_module.def(
-            "copy_to_unique_ptr",
-            (UniquePtrReference<std::nullptr_t>(*)(std::nullptr_t)) &
-                copy_to_unique_ptr);
-        m.aux_module.def(
-            "move_to_unique_ptr",
-            (UniquePtrReference<std::nullptr_t>(*)(std::nullptr_t)) &
-                move_to_unique_ptr);
+        if (AddAuxTypeGeneric::add_type_checked(
+                [](std::string const& mangled_type_name, Module& m) {
+                    auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
+                        m.aux_module, mangled_type_name.c_str());
+                    return ref_c;
+                },
+                type_name, m)) {
+            m.aux_module.def(
+                "copy_to_unique_ptr",
+                (UniquePtrReference<std::nullptr_t>(*)(std::nullptr_t)) &
+                    copy_to_unique_ptr);
+            m.aux_module.def(
+                "move_to_unique_ptr",
+                (UniquePtrReference<std::nullptr_t>(*)(std::nullptr_t)) &
+                    move_to_unique_ptr);
+        }
     }
 };
 
@@ -627,21 +630,20 @@ public:
     {
         auto const type_name = demangle(typeid(Ref).name());
 
-        AddAuxTypeGeneric::add_type_checked(
-            [](std::string const& mangled_type_name, Module& m) {
-                auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
-                    m.aux_module, mangled_type_name.c_str());
-                return ref_c;
-            },
-            type_name, m);
-
-        // TODO avoid duplicate bindings
-        m.aux_module.def("copy_to_rvalue_reference",
-                         &copy_to_rvalue_reference<T>,
-                         pybind11::arg().none(false));
-        m.aux_module.def("move_to_rvalue_reference",
-                         &move_to_rvalue_reference<T>,
-                         pybind11::arg().none(false));
+        if (AddAuxTypeGeneric::add_type_checked(
+                [](std::string const& mangled_type_name, Module& m) {
+                    auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
+                        m.aux_module, mangled_type_name.c_str());
+                    return ref_c;
+                },
+                type_name, m)) {
+            m.aux_module.def("copy_to_rvalue_reference",
+                             &copy_to_rvalue_reference<T>,
+                             pybind11::arg().none(false));
+            m.aux_module.def("move_to_rvalue_reference",
+                             &move_to_rvalue_reference<T>,
+                             pybind11::arg().none(false));
+        }
     }
 };
 
