@@ -55,6 +55,11 @@ public:
         return UniquePtrReference<T>{p.new_moved()};
     }
 
+    UniquePtrReference(std::nullptr_t) : cleanup_(true) {}
+    UniquePtrReference(UniquePtrReference<std::nullptr_t> const&)
+        : cleanup_(true)
+    {
+    }
     UniquePtrReference(T* p, bool cleanup) : p_(p), cleanup_(cleanup) {}
 
     UniquePtrReference(UniquePtrReference<T>&& other)
@@ -334,6 +339,48 @@ struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
 
 // end return value converters /////////////////////////////////////////////////
 
+// traits for pointer semantics ////////////////////////////////////////////////
+
+template <typename T>
+struct HasPointerSemantics {
+    static constexpr bool value = false;
+};
+
+template <typename T>
+struct HasPointerSemantics<T&> : HasPointerSemantics<T> {
+};
+
+template <typename T>
+struct HasPointerSemantics<T&&> : HasPointerSemantics<T> {
+};
+
+template <typename T>
+struct HasPointerSemantics<T*> {
+    static constexpr bool value = true;
+};
+
+template <typename P, typename D>
+struct HasPointerSemantics<std::unique_ptr<P,D>> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+struct HasPointerSemantics<std::shared_ptr<T>> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+struct HasPointerSemantics<smart_ptr<T>> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+struct HasPointerSemantics<UniquePtrReference<T>> {
+    static constexpr bool value = true;
+};
+
+
+
 template <typename T>
 void add_aux_type(Type<T> t, Module& m);
 
@@ -581,6 +628,10 @@ public:
                     return ref_c;
                 },
                 type_name, m)) {
+            pybind11::implicitly_convertible<std::nullptr_t, Ref>();
+            pybind11::implicitly_convertible<
+                UniquePtrReference<std::nullptr_t>, Ref>();
+
             m.aux_module.def("copy_to_unique_ptr", &copy_to_unique_ptr<T>,
                              pybind11::arg().none(false));
             m.aux_module.def("move_to_unique_ptr", &move_to_unique_ptr<T>,
@@ -727,11 +778,22 @@ private:
             pybind11::return_value_policy::reference_internal);
 
         // set concrete type Res
-        auto setter = [member_ptr](
-            Class& c, typename ArgumentConverter<Res>::PyType value) {
-            c.*member_ptr = ArgumentConverter<Res>::convert(
-                std::forward<typename ArgumentConverter<Res>::PyType>(value));
-        };
+        auto setter = pybind11::cpp_function(
+            [member_ptr](Class& c,
+                         typename ArgumentConverter<Res>::PyType value) {
+                c.*member_ptr = ArgumentConverter<Res>::convert(
+                    std::forward<typename ArgumentConverter<Res>::PyType>(
+                        value));
+            },
+            pybind11::is_method(this->c),
+            pybind11::arg().none(
+                HasPointerSemantics<
+                    typename ArgumentConverter<Res>::PyType>::value));
+        std::cout << "  " << name << " setter none? " << std::boolalpha
+                  << HasPointerSemantics<
+                         typename ArgumentConverter<Res>::PyType>::value
+                  << " " << demangle(typeid(decltype(member_ptr)).name())
+                  << '\n';
 
         // add auxiliary bindings
         visit([&](auto t) { add_aux_type(t, module); },
