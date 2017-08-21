@@ -341,7 +341,6 @@ struct ReturnValueConverter<std::unique_ptr<P, D>&&> {
     using PyType = typename ResultType<decltype(convert)>::type;
 };
 
-#if 1
 template <typename P, typename D>
 struct ReturnValueConverter<std::unique_ptr<P, D>&> {
     static P* convert(std::unique_ptr<P, D>& p) { return p.get(); }
@@ -356,28 +355,6 @@ struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
 
     using PyType = P*;
 };
-#else
-template <typename P, typename D>
-struct ReturnValueConverter<std::unique_ptr<P, D>&> {
-    static UniquePtrReference<P> convert(std::unique_ptr<P, D>& p)
-    {
-        return UniquePtrReference<P>(p.get(), false);
-    }
-
-    using PyType = typename ResultType<decltype(convert)>::type;
-};
-
-template <typename P, typename D>
-struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
-    static UniquePtrReference<P> convert(std::unique_ptr<P, D> const& p)
-    {
-        // TODO maybe just return p.get() ?
-        return UniquePtrReference<P>(p.get());
-    }
-
-    using PyType = typename ResultType<decltype(convert)>::type;
-};
-#endif
 
 // end return value converters /////////////////////////////////////////////////
 
