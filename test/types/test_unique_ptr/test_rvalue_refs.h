@@ -16,20 +16,38 @@ struct RValueRefTest {
     REFLECT((RValueRefTest), FIELDS(i), METHODS(f))
 };
 
+struct NoCopy {
+    explicit NoCopy(int i_) : i(i_) {}
+    NoCopy() = default;
+    NoCopy(NoCopy&&) = default;
+    NoCopy(NoCopy const&) = delete;
+    NoCopy& operator=(NoCopy&&) = default;
+    NoCopy& operator=(NoCopy const&) = delete;
+
+    int i;
+
+    REFLECT((NoCopy), FIELDS(i), METHODS())
+};
+
 struct CtorTest {
     CtorTest() {}
-    CtorTest(std::unique_ptr<CtorTest>&& c_, int i_) : c(std::move(c_)), i(i_)
+    CtorTest(std::unique_ptr<CtorTest>&& c_, NoCopy&& n_, int i_)
+        : c(std::move(c_)), n(std::move(n_)), i(i_)
     {
     }
     CtorTest(CtorTest const&) = delete;
-    CtorTest(CtorTest&& other) : c(std::move(other.c)), i(other.i) {}
+    CtorTest(CtorTest&& other)
+        : c(std::move(other.c)), n(std::move(other.n)), i(other.i)
+    {
+    }
 
     std::unique_ptr<CtorTest> c;
+    NoCopy n;
     int i = 0;
 
     void f(CtorTest& c_) { c_.i = 8; }
 
-    REFLECT((CtorTest), FIELDS(c, i), METHODS(f))
+    REFLECT((CtorTest), FIELDS(c, n, i), METHODS(f))
 };
 
 }  // namespace test_unique_ptr

@@ -46,9 +46,13 @@ class TestMethodArgsReturns(unittest.TestCase):
         ct.f(ct)
         self.assertEqual(8, ct.i)
 
-        ct2 = test_unique_ptr.CtorTest(aux.move_to_unique_ptr(ct), 5)
+        nc = test_unique_ptr.NoCopy(10)
+        nc = aux.move_to_rvalue_reference(nc)
+
+        ct2 = test_unique_ptr.CtorTest(aux.move_to_unique_ptr(ct), nc, 5)
         self.assertEqual(5, ct2.i)
         self.assertEqual(8, ct2.c.i)
+        self.assertEqual(10, ct2.n.i)
 
 if __name__ == '__main__':
     unittest.main()
