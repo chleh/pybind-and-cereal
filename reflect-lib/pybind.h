@@ -504,6 +504,57 @@ decltype(auto) add_ctor(pybind11::class_<Class, Options...>& c,
     return add_ctor_impl(c, module, static_cast<FieldTypes*>(nullptr));
 }
 
+template <class Class, class... Options, typename... Ts>
+decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
+                                 std::false_type /* has_suitable_ctor */)
+{
+    return c;
+}
+
+template <typename Class, typename... Ts, std::size_t... Indices>
+decltype(auto) get_state(Class const& c, std::tuple<Ts...> const& fields,
+                         std::index_sequence<Indices...>)
+{
+    return pybind11::make_tuple(
+        ArgumentConverter<Ts>::convert(c.*std::get<Indices>(fields).second)...);
+}
+
+template <typename Class, typename... Ts, std::size_t... Indices>
+void set_state(Class& c, pybind11::tuple& t,
+               std::tuple<Ts...>*, std::index_sequence<Indices...>)
+{
+    if (t.size() != sizeof...(Ts))
+        throw std::runtime_error("Invalid state!");
+
+    new (&c) Class(ArgumentConverter<Ts>::convert(
+        t[Indices].cast<typename ArgumentConverter<Ts>::AuxType>())...);
+}
+
+template <class Class, class... Options, typename... Ts>
+decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
+                                 std::true_type /* has_suitable_ctor */)
+{
+    using Indices = std::index_sequence_for<Ts...>;
+    c.def("__get_state__", [](Class const& instance) {
+        return get_state(instance, Class::Meta::fields(), Indices{});
+    });
+    return c.def("__set_state__", [](Class& instance,
+                                     pybind11::tuple& t) {
+        return set_state(instance, t,
+                         static_cast<decltype(Class::Meta::fields())*>(nullptr),
+                         Indices{});
+    });
+}
+
+template <class Class, class... Options, typename... Ts>
+decltype(auto) add_pickling(pybind11::class_<Class, Options...>& c,
+                            std::tuple<Ts...> const&)
+{
+    return add_pickling_impl(
+        c, std::is_constructible<Class,
+                                 typename std::remove_const<Ts>::type...>{});
+}
+
 template <typename T>
 struct GetClass;
 
@@ -871,6 +922,8 @@ pybind11::class_<Class, Options...> Module::bind()
 
     // add methods
     visit(detail::makeDefMethodsVisitor(c, *this), Class::Meta::methods());
+
+    detail::add_pickling(c, Class::Meta::fields());
 
     return c;
 }
