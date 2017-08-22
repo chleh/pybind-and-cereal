@@ -306,10 +306,16 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
 
 template <typename CPPType>
 struct ReturnValueConverter {
-    static decltype(auto) convert(CPPType&& o)
+private:
+    using CPPTypeNoRef = std::decay_t<CPPType>; // std::remove_reference_t<CPPType>;
+
+public:
+    static CPPTypeNoRef&& convert(CPPTypeNoRef&& o)
     {
         return std::forward<CPPType>(o);
     }
+    static CPPTypeNoRef const& convert(CPPTypeNoRef const& o) { return o; }
+    static CPPTypeNoRef& convert(CPPTypeNoRef& o) { return o; }
 
     using PyType = CPPType;
 };
@@ -505,7 +511,7 @@ decltype(auto) add_ctor(pybind11::class_<Class, Options...>& c,
 }
 
 template <class Class, class... Options, typename... Ts>
-decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
+decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c, std::tuple<Ts...>*,
                                  std::false_type /* has_suitable_ctor */)
 {
     return c;
@@ -515,8 +521,15 @@ template <typename Class, typename... Ts, std::size_t... Indices>
 decltype(auto) get_state(Class const& c, std::tuple<Ts...> const& fields,
                          std::index_sequence<Indices...>)
 {
+    /*
     return pybind11::make_tuple(
-        ArgumentConverter<Ts>::convert(c.*std::get<Indices>(fields).second)...);
+        ArgumentConverter<typename ResultType<typename Ts::second_type>::type>::
+            convert(c.*std::get<Indices>(fields).second)...);
+            */
+    return pybind11::make_tuple(
+        ReturnValueConverter<
+            typename ResultType<typename Ts::second_type>::type const&>::
+            convert(c.*std::get<Indices>(fields).second)...);
 }
 
 template <typename Class, typename... Ts, std::size_t... Indices>
@@ -526,33 +539,45 @@ void set_state(Class& c, pybind11::tuple& t,
     if (t.size() != sizeof...(Ts))
         throw std::runtime_error("Invalid state!");
 
-    new (&c) Class(ArgumentConverter<Ts>::convert(
-        t[Indices].cast<typename ArgumentConverter<Ts>::AuxType>())...);
+    new (&c) Class(t[Indices]
+                       .cast<std::remove_reference_t<
+                           typename ArgumentConverter<Ts>::CPPType>>()...);
 }
 
 template <class Class, class... Options, typename... Ts>
 decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
+                                 std::tuple<Ts...>*,
                                  std::true_type /* has_suitable_ctor */)
 {
+    std::cout << "  adding get/set state\n";
     using Indices = std::index_sequence_for<Ts...>;
     c.def("__get_state__", [](Class const& instance) {
         return get_state(instance, Class::Meta::fields(), Indices{});
     });
-    return c.def("__set_state__", [](Class& instance,
-                                     pybind11::tuple& t) {
-        return set_state(instance, t,
-                         static_cast<decltype(Class::Meta::fields())*>(nullptr),
+    return c;
+#if 0
+    return c.def("__set_state__", [](Class& instance, pybind11::tuple& t) {
+        return set_state(instance, t, static_cast<std::tuple<Ts...>*>(nullptr),
                          Indices{});
     });
+#endif
+}
+
+template <class Class, class... Options, typename... Ts>
+decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
+                            std::tuple<Ts...>* t)
+{
+    return add_pickling_impl(
+        c, t, std::is_constructible<Class,
+                                 typename std::remove_const<Ts>::type...>{});
 }
 
 template <class Class, class... Options, typename... Ts>
 decltype(auto) add_pickling(pybind11::class_<Class, Options...>& c,
                             std::tuple<Ts...> const&)
 {
-    return add_pickling_impl(
-        c, std::is_constructible<Class,
-                                 typename std::remove_const<Ts>::type...>{});
+    using FieldTypes = typename GetFieldTypes<Ts...>::type;
+    return add_pickling_impl(c, static_cast<FieldTypes*>(nullptr));
 }
 
 template <typename T>
