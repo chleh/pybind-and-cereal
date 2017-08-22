@@ -67,6 +67,7 @@
 [v] argument converters for move-only fields
 [ ] test passing base and derived types to copy_to_unique_ptr etc.
 [ ] pickling support (maybe problems with const members)
+[ ] remove references from ArgumentConverter::AuxType
 
 
 Non-Features
