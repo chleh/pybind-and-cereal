@@ -55,34 +55,30 @@ public:
         return UniquePtrReference<T>{p.new_moved()};
     }
 
-    UniquePtrReference(T* p, bool cleanup) : p_(p), cleanup_(cleanup) {}
-
-    UniquePtrReference(UniquePtrReference<T>&& other)
-        : p_(std::move(other.p_)), cleanup_(other.cleanup_)
-    {
-    }
-
-    // TODO: problematic! FIXME
-    UniquePtrReference(UniquePtrReference<T> const& other)
-        : p_(other.p_.get()), cleanup_(other.cleanup_)
+    UniquePtrReference(T* p, bool cleanup)
+        : p_(std::make_shared<std::pair<std::unique_ptr<T>, bool>>(
+              std::unique_ptr<T>(p), cleanup))
     {
     }
 
     ~UniquePtrReference()
     {
-        if (!cleanup_)
-            p_.release();
+        if (p_.unique() && !p_->second)
+            p_->first.release();
     }
 
-    std::unique_ptr<T>& get() { return p_; }
-    std::unique_ptr<T> const& getConst() const { return p_; }
-    std::unique_ptr<T>&& getRValue() { return std::move(p_); }
+    std::unique_ptr<T>& get() { return p_->first; }
+    std::unique_ptr<T> const& getConst() const { return p_->first; }
+    std::unique_ptr<T>&& getRValue() { return std::move(p_->first); }
 
 private:
-    explicit UniquePtrReference(T* p) : p_(p), cleanup_(true) {}
+    explicit UniquePtrReference(T* p)
+        : p_(std::make_shared<std::pair<std::unique_ptr<T>, bool>>(
+              std::unique_ptr<T>(p), true))
+    {
+    }
 
-    std::unique_ptr<T> p_;
-    bool cleanup_;
+    std::shared_ptr<std::pair<std::unique_ptr<T>, bool>> p_;
 };
 
 template <typename T>
@@ -110,16 +106,11 @@ public:
         return RValueReference<T>{p.new_moved()};
     }
 
-    RValueReference(RValueReference<T>&& other) : p_(std::move(other.p_)) {}
-
-    // FIXME
-    RValueReference(RValueReference<T> const& other) : p_(other.p_.get()) {}
-
     T&& get() { return std::move(*p_); }
 
 private:
     RValueReference(T* p) : p_(p) {}
-    std::unique_ptr<T> p_;
+    std::shared_ptr<T> p_;
 };
 
 template <typename T>
