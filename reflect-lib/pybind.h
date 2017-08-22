@@ -550,27 +550,10 @@ void set_state(Class& c, pybind11::tuple& t,
     if (t.size() != sizeof...(Ts))
         throw std::runtime_error("Invalid state!");
 
-#if 0
-    new (&c) Class(t[Indices]
-                       .cast<std::remove_reference_t<
-                           typename ArgumentConverter<Ts>::CPPType>>()...);
-#elif 0
     new (&c) Class(ArgumentConverter<Ts>::convert(
         t[Indices]
             .cast<std::remove_reference_t<
                 typename ArgumentConverter<Ts>::AuxType>>())...);
-#elif 1
-    new (&c) Class(ArgumentConverter<Ts>::convert(
-        t[Indices]
-            .cast<std::remove_reference_t<
-                typename ArgumentConverter<Ts>::AuxType>>())...);
-#else
-    new (&c) Class(std::forward<typename ArgumentConverter<Ts>::CPPType>(
-        ArgumentConverter<Ts>::convert(
-            t[Indices]
-                .cast<std::remove_reference_t<
-                    typename ArgumentConverter<Ts>::AuxType>>()))...);
-#endif
 }
 
 template <class Class, class... Options, typename... Ts>
@@ -583,13 +566,10 @@ decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
     c.def("__get_state__", [](Class const& instance) {
         return get_state(instance, Class::Meta::fields(), Indices{});
     });
-    // return c;
-#if 1
     return c.def("__set_state__", [](Class& instance, pybind11::tuple& t) {
         set_state(instance, t, static_cast<std::tuple<Ts...>*>(nullptr),
                   Indices{});
     });
-#endif
 }
 
 template <class Class, class... Options, typename... Ts>
