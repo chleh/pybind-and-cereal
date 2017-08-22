@@ -554,10 +554,10 @@ decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
 {
     std::cout << "  adding get/set state\n";
     using Indices = std::index_sequence_for<Ts...>;
-    c.def("__get_state__", [](Class const& instance) {
+    c.def("__getstate__", [](Class const& instance) {
         return get_state(instance, Class::Meta::fields(), Indices{});
     });
-    return c.def("__set_state__", [](Class& instance, pybind11::tuple& t) {
+    return c.def("__setstate__", [](Class& instance, pybind11::tuple& t) {
         set_state(instance, t, static_cast<std::tuple<Ts...>*>(nullptr),
                   Indices{});
     });
