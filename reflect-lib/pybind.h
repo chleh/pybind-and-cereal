@@ -215,13 +215,8 @@ struct ArgumentConverter<CPPType_&&> {
     static CPPType convert(PyType o) { return o.get(); }
 };
 
-
-
-
 template <typename P, typename D>
 static std::unique_ptr<P, D> none = std::unique_ptr<P, D>{};
-
-
 
 template <typename P, typename D>
 struct ArgumentConverter<std::unique_ptr<P, D>> {
@@ -238,14 +233,12 @@ struct ArgumentConverter<std::unique_ptr<P, D>> {
         try {
             auto* p = o.cast<UniquePtrReference<P>*>();
             return p->getRValue();
-        } catch (pybind11::cast_error) {}
+        } catch (pybind11::cast_error) {
+        }
         // TODO better error message
         throw pybind11::type_error("ERR.");
     }
-    static CPPType convert(AuxType&& o)
-    {
-        return o.getRValue();
-    }
+    static CPPType convert(AuxType&& o) { return o.getRValue(); }
 };
 
 template <typename P, typename D>
@@ -263,7 +256,8 @@ struct ArgumentConverter<std::unique_ptr<P, D>&&> {
         try {
             auto* p = o.cast<UniquePtrReference<P>*>();
             return p->getRValue();
-        } catch (pybind11::cast_error) {}
+        } catch (pybind11::cast_error) {
+        }
         throw pybind11::type_error("ERR.");
     }
 };
@@ -283,7 +277,8 @@ struct ArgumentConverter<std::unique_ptr<P, D>&> {
         try {
             auto* p = o.cast<UniquePtrReference<P>*>();
             return p->get();
-        } catch (pybind11::cast_error) {}
+        } catch (pybind11::cast_error) {
+        }
         throw pybind11::type_error("ERR.");
     }
 };
@@ -303,7 +298,8 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
         try {
             auto* p = o.cast<UniquePtrReference<P>*>();
             return p->getConst();
-        } catch (pybind11::cast_error) {}
+        } catch (pybind11::cast_error) {
+        }
         throw pybind11::type_error("ERR.");
     }
 };
@@ -315,7 +311,8 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
 template <typename CPPType>
 struct ReturnValueConverter {
 private:
-    using CPPTypeNoRef = std::decay_t<CPPType>; // std::remove_reference_t<CPPType>;
+    using CPPTypeNoRef =
+        std::decay_t<CPPType>;  // std::remove_reference_t<CPPType>;
 
 public:
     static CPPTypeNoRef&& convert(CPPTypeNoRef&& o)
@@ -738,12 +735,10 @@ public:
                              pybind11::arg().none(false));
 
             // TODO duplicate bindings problem?
-            m.aux_module.def("copy_to_unique_ptr", [](std::nullptr_t) {
-                return nullptr;
-            });
-            m.aux_module.def("move_to_unique_ptr", [](std::nullptr_t) {
-                return nullptr;
-            });
+            m.aux_module.def("copy_to_unique_ptr",
+                             [](std::nullptr_t) { return nullptr; });
+            m.aux_module.def("move_to_unique_ptr",
+                             [](std::nullptr_t) { return nullptr; });
         }
     }
 };
