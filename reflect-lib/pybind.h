@@ -137,9 +137,9 @@ struct ArgumentConverterImpl {
 
 // TODO why does it work without the overloads?
 #if 0
-    // static CPPType_&& convert(PyType&& o) { return std::move(o); }
+    // static CPPType_&& py2cpp(PyType&& o) { return std::move(o); }
     template <typename T>
-    static CPPType_&& convert(
+    static CPPType_&& py2cpp(
         typename std::decay<T>::type&& o,
         typename std::enable_if<!std::is_same<T, PyType const>::value,
                                 PyType&>::type* = nullptr)
@@ -149,7 +149,7 @@ struct ArgumentConverterImpl {
         return o;
     }
     template <typename T>
-    static CPPType_& convert(
+    static CPPType_& py2cpp(
         typename std::decay<T>::type& o,
         typename std::enable_if<!std::is_same<T, PyType const>::value,
                                 PyType&>::type* = nullptr)
@@ -159,7 +159,7 @@ struct ArgumentConverterImpl {
         return o;
     }
 #endif
-    static CPPType convert(PyType o)
+    static CPPType py2cpp(PyType o)
     {
         // std::cout << "conversion const&! " << demangle(typeid(PyType).name())
         //           << '\n';
@@ -175,8 +175,8 @@ struct ArgumentConverterImpl<CPPType_, false> {
     using PyType = RValueReference<CPPType_>&;
     using AuxType = PyType;
 
-    static CPPType convert(PyType o) { return o.get(); }
-    static CPPType convert(RValueReference<CPPType_>&& o) { return o.get(); }
+    static CPPType py2cpp(PyType o) { return o.get(); }
+    static CPPType py2cpp(RValueReference<CPPType_>&& o) { return o.get(); }
 };
 
 template <typename CPPType_>
@@ -191,7 +191,7 @@ struct ArgumentConverter<CPPType_&> {
     using PyType = CPPType;
     using AuxType = PyType;
 
-    static CPPType convert(PyType o) { return o; }
+    static CPPType py2cpp(PyType o) { return o; }
 };
 
 template <typename CPPType_>
@@ -200,7 +200,7 @@ struct ArgumentConverter<CPPType_ const&> {
     using PyType = CPPType;
     using AuxType = PyType;
 
-    static CPPType convert(PyType o) { return o; }
+    static CPPType py2cpp(PyType o) { return o; }
 };
 
 template <typename CPPType_>
@@ -212,7 +212,7 @@ struct ArgumentConverter<CPPType_&&> {
     using PyType = RValueReference<CPPType_>&;
     using AuxType = PyType;
 
-    static CPPType convert(PyType o) { return o.get(); }
+    static CPPType py2cpp(PyType o) { return o.get(); }
 };
 
 template <typename P, typename D>
@@ -224,7 +224,7 @@ struct ArgumentConverter<std::unique_ptr<P, D>> {
     using PyType = pybind11::object;
     using AuxType = UniquePtrReference<P>;
 
-    static CPPType convert(PyType o)
+    static CPPType py2cpp(PyType o)
     {
         if (o.is_none()) {
             none<P, D>.reset();
@@ -238,7 +238,7 @@ struct ArgumentConverter<std::unique_ptr<P, D>> {
         // TODO better error message
         throw pybind11::type_error("ERR.");
     }
-    static CPPType convert(AuxType&& o) { return o.getRValue(); }
+    static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
 };
 
 template <typename P, typename D>
@@ -247,7 +247,7 @@ struct ArgumentConverter<std::unique_ptr<P, D>&&> {
     using PyType = pybind11::object;
     using AuxType = UniquePtrReference<P>;
 
-    static CPPType convert(PyType o)
+    static CPPType py2cpp(PyType o)
     {
         if (o.is_none()) {
             none<P, D>.reset();
@@ -268,7 +268,7 @@ struct ArgumentConverter<std::unique_ptr<P, D>&> {
     using PyType = pybind11::object;
     using AuxType = UniquePtrReference<P>;
 
-    static CPPType convert(PyType o)
+    static CPPType py2cpp(PyType o)
     {
         if (o.is_none()) {
             none<P, D>.reset();
@@ -289,7 +289,7 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
     using PyType = pybind11::object;
     using AuxType = UniquePtrReference<P>;
 
-    static CPPType convert(PyType o)
+    static CPPType py2cpp(PyType o)
     {
         if (o.is_none()) {
             none<P, D>.reset();
@@ -315,12 +315,12 @@ private:
         std::decay_t<CPPType>;  // std::remove_reference_t<CPPType>;
 
 public:
-    static CPPTypeNoRef&& convert(CPPTypeNoRef&& o)
+    static CPPTypeNoRef&& cpp2py(CPPTypeNoRef&& o)
     {
         return std::forward<CPPType>(o);
     }
-    static CPPTypeNoRef const& convert(CPPTypeNoRef const& o) { return o; }
-    static CPPTypeNoRef& convert(CPPTypeNoRef& o) { return o; }
+    static CPPTypeNoRef const& cpp2py(CPPTypeNoRef const& o) { return o; }
+    static CPPTypeNoRef& cpp2py(CPPTypeNoRef& o) { return o; }
 
     using PyType = CPPType;
 };
@@ -332,29 +332,29 @@ struct ReturnValueConverter<void> {
 
 template <typename P, typename D>
 struct ReturnValueConverter<std::unique_ptr<P, D>> {
-    static smart_ptr<P> convert(std::unique_ptr<P, D> p)
+    static smart_ptr<P> cpp2py(std::unique_ptr<P, D> p)
     {
         // TODO: might create wrong copy/move function!
         return smart_ptr<P>(p.release());
     }
 
-    using PyType = typename ResultType<decltype(convert)>::type;
+    using PyType = typename ResultType<decltype(cpp2py)>::type;
 };
 
 template <typename P, typename D>
 struct ReturnValueConverter<std::unique_ptr<P, D>&&> {
-    static std::unique_ptr<P, D> const& convert(std::unique_ptr<P, D>&& p)
+    static std::unique_ptr<P, D> const& cpp2py(std::unique_ptr<P, D>&& p)
     {
         // TODO: might create wrong copy/move function!
         return smart_ptr<P>(p.release());
     }
 
-    using PyType = typename ResultType<decltype(convert)>::type;
+    using PyType = typename ResultType<decltype(cpp2py)>::type;
 };
 
 template <typename P, typename D>
 struct ReturnValueConverter<std::unique_ptr<P, D>&> {
-    static P* convert(std::unique_ptr<P, D>& p) { return p.get(); }
+    static P* cpp2py(std::unique_ptr<P, D>& p) { return p.get(); }
 
     // TODO add return value policy!
     using PyType = P*;
@@ -362,7 +362,7 @@ struct ReturnValueConverter<std::unique_ptr<P, D>&> {
 
 template <typename P, typename D>
 struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
-    static P* convert(std::unique_ptr<P, D> const& p) { return p.get(); }
+    static P* cpp2py(std::unique_ptr<P, D> const& p) { return p.get(); }
 
     using PyType = P*;
 };
@@ -482,7 +482,7 @@ decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
     return c.def(
         "__init__",
         [](Class& instance, typename ArgumentConverter<Ts>::PyType... args) {
-            new (&instance) Class(ArgumentConverter<Ts>::convert(args)...);
+            new (&instance) Class(ArgumentConverter<Ts>::py2cpp(args)...);
         });
 }
 
@@ -532,7 +532,7 @@ decltype(auto) get_state(Class const& c,
                          std::index_sequence<Indices...>)
 {
     return pybind11::make_tuple(
-        ReturnValueConverter<MemberTypes const&>::convert(
+        ReturnValueConverter<MemberTypes const&>::cpp2py(
             c.*std::get<Indices>(fields).second)...);
 }
 
@@ -543,7 +543,7 @@ void set_state(Class& c, pybind11::tuple& t, std::tuple<MemberTypes...>*,
     if (t.size() != sizeof...(MemberTypes))
         throw std::runtime_error("Invalid state!");
 
-    new (&c) Class(ArgumentConverter<MemberTypes>::convert(
+    new (&c) Class(ArgumentConverter<MemberTypes>::py2cpp(
         t[Indices]
             .cast<std::remove_reference_t<
                 typename ArgumentConverter<MemberTypes>::AuxType>>())...);
@@ -564,7 +564,7 @@ void set_state(Class& c, pybind11::tuple& t,
     new (&c) Class();
 
     NoOp{(c.*std::get<Indices>(fields).second =
-              ArgumentConverter<MemberTypes>::convert(
+              ArgumentConverter<MemberTypes>::py2cpp(
                   t[Indices]
                       .cast<std::remove_reference_t<typename ArgumentConverter<
                           MemberTypes>::AuxType>>()))...};
@@ -821,7 +821,7 @@ private:
         auto getter = pybind11::cpp_function(
             [member_ptr](Class & c) ->
             typename ReturnValueConverter<Res&>::PyType {
-                return ReturnValueConverter<Res&>::convert(c.*member_ptr);
+                return ReturnValueConverter<Res&>::cpp2py(c.*member_ptr);
             },
             pybind11::is_method(this->c),
             pybind11::return_value_policy::reference_internal);
@@ -844,7 +844,7 @@ private:
         auto getter = pybind11::cpp_function(
             [member_ptr](Class & c) ->
             typename ReturnValueConverter<Res&>::PyType {
-                return ReturnValueConverter<Res&>::convert(c.*member_ptr);
+                return ReturnValueConverter<Res&>::cpp2py(c.*member_ptr);
             },
             pybind11::is_method(this->c),
             pybind11::return_value_policy::reference_internal);
@@ -852,7 +852,7 @@ private:
         // set concrete type Res
         auto setter = [member_ptr](
             Class& c, typename ArgumentConverter<Res>::PyType value) {
-            c.*member_ptr = ArgumentConverter<Res>::convert(
+            c.*member_ptr = ArgumentConverter<Res>::py2cpp(
                 std::forward<typename ArgumentConverter<Res>::PyType>(value));
         };
 
@@ -904,8 +904,8 @@ private:
                             typename ArgumentConverter<Args>::PyType... args) ->
                typename ReturnValueConverter<Res>::PyType
         {
-            return ReturnValueConverter<Res>::convert(
-                (c.*member_ptr)(ArgumentConverter<Args>::convert(
+            return ReturnValueConverter<Res>::cpp2py(
+                (c.*member_ptr)(ArgumentConverter<Args>::py2cpp(
                     std::forward<typename ArgumentConverter<Args>::PyType>(
                         args))...));
         };
@@ -917,7 +917,7 @@ private:
     {
         return [member_ptr](Class& c,
                             typename ArgumentConverter<Args>::PyType... args) {
-            (c.*member_ptr)(ArgumentConverter<Args>::convert(
+            (c.*member_ptr)(ArgumentConverter<Args>::py2cpp(
                 std::forward<typename ArgumentConverter<Args>::PyType>(
                     args))...);
         };
