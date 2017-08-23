@@ -518,8 +518,10 @@ decltype(auto) add_ctor(pybind11::class_<Class, Options...>& c,
 }
 
 template <class Class, class... Options, typename... Ts>
-decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c, std::tuple<Ts...>*,
-                                 std::false_type /* has_suitable_ctor */)
+decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
+                                 std::tuple<Ts...>*,
+                                 std::false_type /* has_suitable_ctor */,
+                                 std::false_type /* is_default_constructible */)
 {
     return c;
 }
@@ -547,10 +549,11 @@ void set_state(Class& c, pybind11::tuple& t,
                 typename ArgumentConverter<Ts>::AuxType>>())...);
 }
 
-template <class Class, class... Options, typename... Ts>
+template <class Class, bool BoolConst, class... Options, typename... Ts>
 decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
                                  std::tuple<Ts...>*,
-                                 std::true_type /* has_suitable_ctor */)
+                                 std::true_type /* has_suitable_ctor */,
+                                 std::integral_constant<bool, BoolConst>)
 {
     std::cout << "  adding get/set state\n";
     using Indices = std::index_sequence_for<Ts...>;
@@ -565,11 +568,32 @@ decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
 
 template <class Class, class... Options, typename... Ts>
 decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
+                                 std::tuple<Ts...>*,
+                                 std::false_type /* has_suitable_ctor */,
+                                 std::true_type /* is_default_constructible */)
+{
+    std::cout << "  adding get/set state\n";
+    using Indices = std::index_sequence_for<Ts...>;
+    c.def("__getstate__", [](Class const& instance) {
+        return get_state(instance, Class::Meta::fields(), Indices{});
+    });
+#if 1
+    return c.def("__setstate__", [](Class& instance, pybind11::tuple& t) {
+        std::cout << "Setting state!!!\n";
+        new (&instance) Class();
+        // set_state(instance, t, static_cast<std::tuple<Ts...>*>(nullptr),
+        //           Indices{});
+    });
+#endif
+}
+
+template <class Class, class... Options, typename... Ts>
+decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
                             std::tuple<Ts...>* t)
 {
     return add_pickling_impl(
-        c, t, std::is_constructible<Class,
-                                 typename std::remove_const<Ts>::type...>{});
+        c, t, std::is_constructible<Class, std::remove_const_t<Ts>...>{},
+        std::is_default_constructible<Class>{});
 }
 
 template <class Class, class... Options, typename... Ts>
