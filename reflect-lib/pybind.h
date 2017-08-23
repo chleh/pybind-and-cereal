@@ -15,6 +15,7 @@
 
 #include <iostream>
 
+// TODO check that claim!
 // Why not unique_ptr? --> Because it has to be copyable.
 PYBIND11_DECLARE_HOLDER_TYPE(T, reflect_lib::smart_ptr<T>)
 
@@ -549,11 +550,11 @@ void set_state(Class& c, pybind11::tuple& t,
                 typename ArgumentConverter<Ts>::AuxType>>())...);
 }
 
-template <class Class, bool BoolConst, class... Options, typename... Ts>
+template <class Class, typename BoolConst, class... Options, typename... Ts>
 decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
                                  std::tuple<Ts...>*,
                                  std::true_type /* has_suitable_ctor */,
-                                 std::integral_constant<bool, BoolConst>)
+                                 BoolConst /* is_default_constructible */)
 {
     std::cout << "  adding get/set state\n";
     using Indices = std::index_sequence_for<Ts...>;
