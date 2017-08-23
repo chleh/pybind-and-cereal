@@ -564,32 +564,11 @@ void set_state(Class& c, pybind11::tuple& t,
 
     new (&c) Class();
 
-    int tmp[] = {
-        (c.*std::get<Indices>(fields).second =
-             ArgumentConverter<MemberTypes>::convert(
-                 t[Indices]
-                     .cast<std::remove_reference_t<
-                         typename ArgumentConverter<MemberTypes>::AuxType>>()),
-         0)...,
-        0};
-    (void) tmp;
-
-#if 0
-    NoOp{(c.*std::get<Indices>(fields).second = ArgumentConverter<
-              typename ResultType<typename Ts::second_type>::type>::
-              convert(t[Indices]
-                          .cast<std::remove_reference_t<
-                              typename ArgumentConverter<typename ResultType<
-                                  typename Ts::second_type>::type>::AuxType>>>
-                      ()), 0)...};
-#endif
-
-#if 0
-    ArgumentConverter<Ts>::convert(
-        t[Indices]
-            .cast<std::remove_reference_t<
-                typename ArgumentConverter<Ts>::AuxType>>())...);
-#endif
+    NoOp{(c.*std::get<Indices>(fields).second =
+              ArgumentConverter<MemberTypes>::convert(
+                  t[Indices]
+                      .cast<std::remove_reference_t<typename ArgumentConverter<
+                          MemberTypes>::AuxType>>()))...};
 }
 
 template <class Class, typename BoolConst, class... Options, typename... Ts>
