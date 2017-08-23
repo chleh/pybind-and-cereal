@@ -550,6 +550,48 @@ void set_state(Class& c, pybind11::tuple& t,
                 typename ArgumentConverter<Ts>::AuxType>>())...);
 }
 
+template <typename Class, typename... PairsNameMember, typename... MemberTypes,
+          std::size_t... Indices>
+void set_state(Class& c, pybind11::tuple& t,
+               std::tuple<PairsNameMember...> const& fields,
+               std::tuple<MemberTypes...>*, std::index_sequence<Indices...>)
+{
+    static_assert(sizeof...(PairsNameMember) == sizeof...(MemberTypes),
+                  "Error!");
+
+    if (t.size() != sizeof...(PairsNameMember))
+        throw std::runtime_error("Invalid state!");
+
+    new (&c) Class();
+
+    int tmp[] = {
+        (c.*std::get<Indices>(fields).second =
+             ArgumentConverter<MemberTypes>::convert(
+                 t[Indices]
+                     .cast<std::remove_reference_t<
+                         typename ArgumentConverter<MemberTypes>::AuxType>>()),
+         0)...,
+        0};
+    (void) tmp;
+
+#if 0
+    NoOp{(c.*std::get<Indices>(fields).second = ArgumentConverter<
+              typename ResultType<typename Ts::second_type>::type>::
+              convert(t[Indices]
+                          .cast<std::remove_reference_t<
+                              typename ArgumentConverter<typename ResultType<
+                                  typename Ts::second_type>::type>::AuxType>>>
+                      ()), 0)...};
+#endif
+
+#if 0
+    ArgumentConverter<Ts>::convert(
+        t[Indices]
+            .cast<std::remove_reference_t<
+                typename ArgumentConverter<Ts>::AuxType>>())...);
+#endif
+}
+
 template <class Class, typename BoolConst, class... Options, typename... Ts>
 decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
                                  std::tuple<Ts...>*,
@@ -581,9 +623,8 @@ decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
 #if 1
     return c.def("__setstate__", [](Class& instance, pybind11::tuple& t) {
         std::cout << "Setting state!!!\n";
-        new (&instance) Class();
-        // set_state(instance, t, static_cast<std::tuple<Ts...>*>(nullptr),
-        //           Indices{});
+        set_state(instance, t, Class::Meta::fields(),
+                  static_cast<std::tuple<Ts...>*>(nullptr), Indices{});
     });
 #endif
 }
