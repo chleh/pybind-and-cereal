@@ -527,27 +527,29 @@ decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
     return c;
 }
 
-template <typename Class, typename... Ts, std::size_t... Indices>
-decltype(auto) get_state(Class const& c, std::tuple<Ts...> const& fields,
+template <typename Class, typename... PairsNameMember, typename... MemberTypes,
+          std::size_t... Indices>
+decltype(auto) get_state(Class const& c,
+                         std::tuple<PairsNameMember...> const& fields,
+                         std::tuple<MemberTypes...>*,
                          std::index_sequence<Indices...>)
 {
     return pybind11::make_tuple(
-        ReturnValueConverter<
-            typename ResultType<typename Ts::second_type>::type const&>::
-            convert(c.*std::get<Indices>(fields).second)...);
+        ReturnValueConverter<MemberTypes const&>::convert(
+            c.*std::get<Indices>(fields).second)...);
 }
 
-template <typename Class, typename... Ts, std::size_t... Indices>
-void set_state(Class& c, pybind11::tuple& t,
-               std::tuple<Ts...>*, std::index_sequence<Indices...>)
+template <typename Class, typename... MemberTypes, std::size_t... Indices>
+void set_state(Class& c, pybind11::tuple& t, std::tuple<MemberTypes...>*,
+               std::index_sequence<Indices...>)
 {
-    if (t.size() != sizeof...(Ts))
+    if (t.size() != sizeof...(MemberTypes))
         throw std::runtime_error("Invalid state!");
 
-    new (&c) Class(ArgumentConverter<Ts>::convert(
+    new (&c) Class(ArgumentConverter<MemberTypes>::convert(
         t[Indices]
             .cast<std::remove_reference_t<
-                typename ArgumentConverter<Ts>::AuxType>>())...);
+                typename ArgumentConverter<MemberTypes>::AuxType>>())...);
 }
 
 template <typename Class, typename... PairsNameMember, typename... MemberTypes,
@@ -571,57 +573,61 @@ void set_state(Class& c, pybind11::tuple& t,
                           MemberTypes>::AuxType>>()))...};
 }
 
-template <class Class, typename BoolConst, class... Options, typename... Ts>
+template <class Class, typename BoolConst, class... Options,
+          typename... MemberTypes>
 decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
-                                 std::tuple<Ts...>*,
+                                 std::tuple<MemberTypes...>*,
                                  std::true_type /* has_suitable_ctor */,
                                  BoolConst /* is_default_constructible */)
 {
     std::cout << "  adding get/set state\n";
-    using Indices = std::index_sequence_for<Ts...>;
+    using Indices = std::index_sequence_for<MemberTypes...>;
     c.def("__getstate__", [](Class const& instance) {
-        return get_state(instance, Class::Meta::fields(), Indices{});
+        return get_state(instance, Class::Meta::fields(),
+                         static_cast<std::tuple<MemberTypes...>*>(nullptr),
+                         Indices{});
     });
     return c.def("__setstate__", [](Class& instance, pybind11::tuple& t) {
-        set_state(instance, t, static_cast<std::tuple<Ts...>*>(nullptr),
-                  Indices{});
+        set_state(instance, t,
+                  static_cast<std::tuple<MemberTypes...>*>(nullptr), Indices{});
     });
 }
 
-template <class Class, class... Options, typename... Ts>
+template <class Class, class... Options, typename... MemberTypes>
 decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
-                                 std::tuple<Ts...>*,
+                                 std::tuple<MemberTypes...>*,
                                  std::false_type /* has_suitable_ctor */,
                                  std::true_type /* is_default_constructible */)
 {
     std::cout << "  adding get/set state\n";
-    using Indices = std::index_sequence_for<Ts...>;
+    using Indices = std::index_sequence_for<MemberTypes...>;
     c.def("__getstate__", [](Class const& instance) {
-        return get_state(instance, Class::Meta::fields(), Indices{});
+        return get_state(instance, Class::Meta::fields(),
+                         static_cast<std::tuple<MemberTypes...>*>(nullptr),
+                         Indices{});
     });
-#if 1
     return c.def("__setstate__", [](Class& instance, pybind11::tuple& t) {
         std::cout << "Setting state!!!\n";
         set_state(instance, t, Class::Meta::fields(),
-                  static_cast<std::tuple<Ts...>*>(nullptr), Indices{});
+                  static_cast<std::tuple<MemberTypes...>*>(nullptr), Indices{});
     });
-#endif
 }
 
-template <class Class, class... Options, typename... Ts>
+template <class Class, class... Options, typename... MemberTypes>
 decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
-                            std::tuple<Ts...>* t)
+                                 std::tuple<MemberTypes...>* t)
 {
     return add_pickling_impl(
-        c, t, std::is_constructible<Class, std::remove_const_t<Ts>...>{},
+        c, t,
+        std::is_constructible<Class, std::remove_const_t<MemberTypes>...>{},
         std::is_default_constructible<Class>{});
 }
 
-template <class Class, class... Options, typename... Ts>
+template <class Class, class... Options, typename... PairsNameMember>
 decltype(auto) add_pickling(pybind11::class_<Class, Options...>& c,
-                            std::tuple<Ts...> const&)
+                            std::tuple<PairsNameMember...> const&)
 {
-    using FieldTypes = typename GetFieldTypes<Ts...>::type;
+    using FieldTypes = typename GetFieldTypes<PairsNameMember...>::type;
     return add_pickling_impl(c, static_cast<FieldTypes*>(nullptr));
 }
 
