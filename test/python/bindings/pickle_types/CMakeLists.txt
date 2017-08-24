@@ -1,0 +1,2 @@
+reflect_lib_add_python_module(pickle_types pickle_types.cpp)
+reflect_lib_target_link_libraries(pickle_types PRIVATE reflection)
