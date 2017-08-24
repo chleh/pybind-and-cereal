@@ -369,6 +369,174 @@ struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
 
 // end return value converters /////////////////////////////////////////////////
 
+
+
+
+
+
+// unpickle converters /////////////////////////////////////////////////////////
+
+// copy constructible CPPType_
+template <typename CPPType_, bool IsCopyConstructible>
+struct UnpickleConverterImpl {
+    using CPPType = CPPType_ const&;
+    using PyType = CPPType_ const&;
+    using AuxType = PyType;
+
+    static CPPType py2cpp(PyType o)
+    {
+        // std::cout << "conversion const&! " << demangle(typeid(PyType).name())
+        //           << '\n';
+        return o;
+    }
+};
+
+// TODO: type that is neither copyable nor movable
+// not copy constructible CPPType_
+template <typename CPPType_>
+struct UnpickleConverterImpl<CPPType_, false> {
+    using CPPType = CPPType_&&;
+    using PyType = RValueReference<CPPType_>&;
+    using AuxType = PyType;
+
+    static CPPType py2cpp(PyType o) { return o.get(); }
+    static CPPType py2cpp(RValueReference<CPPType_>&& o) { return o.get(); }
+};
+
+template <typename CPPType_>
+struct UnpickleConverter
+    : UnpickleConverterImpl<CPPType_,
+                            std::is_copy_constructible<CPPType_>::value> {
+};
+
+template <typename CPPType_>
+struct UnpickleConverter<CPPType_&> {
+    using CPPType = CPPType_&;
+    using PyType = CPPType;
+    using AuxType = PyType;
+
+    static CPPType py2cpp(PyType o) { return o; }
+};
+
+template <typename CPPType_>
+struct UnpickleConverter<CPPType_ const&> {
+    using CPPType = CPPType_ const&;
+    using PyType = CPPType;
+    using AuxType = PyType;
+
+    static CPPType py2cpp(PyType o) { return o; }
+};
+
+template <typename CPPType_>
+struct UnpickleConverter<CPPType_&&> {
+    using CPPType = CPPType_&&;
+
+    // TODO static_assert that this is reference type? (for all
+    // UnpickleConverter types)
+    using PyType = RValueReference<CPPType_>&;
+    using AuxType = PyType;
+
+    static CPPType py2cpp(PyType o) { return o.get(); }
+};
+
+template <typename P, typename D>
+struct UnpickleConverter<std::unique_ptr<P, D>> {
+    using CPPType = std::unique_ptr<P, D>;
+    using PyType = pybind11::object;
+    using AuxType = UniquePtrReference<P>;
+
+    static CPPType py2cpp(PyType o)
+    {
+        if (o.is_none()) {
+            none<P, D>.reset();
+            return std::move(none<P, D>);
+        }
+        try {
+            auto p = o.cast<smart_ptr<P>>();
+            return std::unique_ptr<P, D>(p.release());
+        } catch (pybind11::cast_error e) {
+            std::cout << "Error: " << e.what() << '\n';
+        }
+        // TODO better error message
+        throw pybind11::type_error("ERR.");
+    }
+    static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
+};
+
+template <typename P, typename D>
+struct UnpickleConverter<std::unique_ptr<P, D>&&> {
+    using CPPType = std::unique_ptr<P, D>&&;
+    using PyType = pybind11::object;
+    using AuxType = UniquePtrReference<P>;
+
+    static CPPType py2cpp(PyType o)
+    {
+        if (o.is_none()) {
+            none<P, D>.reset();
+            return std::move(none<P, D>);
+        }
+        try {
+            auto* p = o.cast<UniquePtrReference<P>*>();
+            return p->getRValue();
+        } catch (pybind11::cast_error e) {
+            std::cout << "Error: " << e.what() << '\n';
+        }
+        throw pybind11::type_error("ERR.");
+    }
+};
+
+template <typename P, typename D>
+struct UnpickleConverter<std::unique_ptr<P, D>&> {
+    using CPPType = std::unique_ptr<P, D>&;
+    using PyType = pybind11::object;
+    using AuxType = UniquePtrReference<P>;
+
+    static CPPType py2cpp(PyType o)
+    {
+        if (o.is_none()) {
+            none<P, D>.reset();
+            return none<P, D>;
+        }
+        try {
+            auto* p = o.cast<UniquePtrReference<P>*>();
+            return p->get();
+        } catch (pybind11::cast_error e) {
+            std::cout << "Error: " << e.what() << '\n';
+        }
+        throw pybind11::type_error("ERR.");
+    }
+};
+
+template <typename P, typename D>
+struct UnpickleConverter<std::unique_ptr<P, D> const&> {
+    using CPPType = std::unique_ptr<P, D> const&;
+    using PyType = pybind11::object;
+    using AuxType = UniquePtrReference<P>;
+
+    static CPPType py2cpp(PyType o)
+    {
+        if (o.is_none()) {
+            none<P, D>.reset();
+            return none<P, D>;
+        }
+        try {
+            auto* p = o.cast<UniquePtrReference<P>*>();
+            return p->getConst();
+        } catch (pybind11::cast_error e) {
+            std::cout << "Error: " << e.what() << '\n';
+        }
+        throw pybind11::type_error("ERR.");
+    }
+};
+
+// end unpickle converters /////////////////////////////////////////////////////
+
+
+
+
+
+
+
 template <typename T>
 void add_aux_type(Type<T> t, Module& m);
 
@@ -549,6 +717,18 @@ void set_state(Class& c, pybind11::tuple& t, std::tuple<MemberTypes...>*,
                 typename ArgumentConverter<MemberTypes>::AuxType>>())...);
 }
 
+template <typename Res, typename Arg>
+Res my_cast(Arg&& arg)
+{
+    try {
+        return std::forward<Arg>(arg).template cast<Res>();
+    } catch (std::exception) {
+        std::cout << "Error casting:\n  from " << demangle(typeid(Arg).name())
+                  << "\n  to" << demangle(typeid(Res).name()) << '\n';
+        throw;
+    }
+}
+
 template <typename Class, typename... PairsNameMember, typename... MemberTypes,
           std::size_t... Indices>
 void set_state(Class& c, pybind11::tuple& t,
@@ -564,10 +744,17 @@ void set_state(Class& c, pybind11::tuple& t,
     new (&c) Class();
 
     NoOp{(c.*std::get<Indices>(fields).second =
+              UnpickleConverter<MemberTypes>::py2cpp(
+                  my_cast<std::remove_reference_t<
+                      typename UnpickleConverter<MemberTypes>::PyType>>(
+                      t[Indices])))...};
+#if 0
+    NoOp{(c.*std::get<Indices>(fields).second =
               ArgumentConverter<MemberTypes>::py2cpp(
                   t[Indices]
                       .cast<std::remove_reference_t<typename ArgumentConverter<
                           MemberTypes>::AuxType>>()))...};
+#endif
 }
 
 template <class Class, typename BoolConst, class... Options,

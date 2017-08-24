@@ -70,6 +70,11 @@ public:
         return get();
     }
 
+    T* release() {
+        if (i) return i->ptr.release();
+        return nullptr;
+    }
+
     decltype(auto) use_count() const {
         return i.use_count();
     }
