@@ -373,7 +373,7 @@ struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
 
 
 
-
+// TODO reduce duplicate code
 // unpickle converters /////////////////////////////////////////////////////////
 
 // copy constructible CPPType_
