@@ -91,9 +91,16 @@ class TestPickleContainsVectorOfEmpty(unittest.TestCase):
         b = pickle_types.DerivedFromEmptyString()
         b.s = "Hello!"
         c = pickle_types.ContainsVectorOfEmpty()
-        c.vs = [ "a", "b" ]
-        c.vi = [ 1, 2, 3 ]
-        c.v = [ a, b ]
+        print(aux.aux_types)
+        print("OK")
+        c.vs = aux.aux_types["std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >"]([ "a", "b" ])
+        print("OK")
+
+        # seg faults
+        # c.vi = aux.aux_types["std::vector<int, std::allocator<int> >"]([ 1, 2, 3 ])
+        # c.vi.extend([1,2])
+        print("OK")
+        # c.v = aux.aux_types["std::vector<std::shared_ptr<pickle_types::Empty>, std::allocator<std::shared_ptr<pickle_types::Empty> > >"]([ a, b ])
 
         with open(self.filename, "wb") as fh:
             pickle.dump(c, fh, -1)

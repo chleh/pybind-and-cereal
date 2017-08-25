@@ -663,8 +663,8 @@ decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
                              Module& module, std::tuple<Ts...>* t)
 {
 #if 1
-    std::cout << "ZZ " << demangle(typeid(Class).name()) << '\n';
-    std::cout << "zz "
+    std::cout << "add_ctor_impl " << demangle(typeid(Class).name()) << '\n';
+    std::cout << "  ...tor_impl "
               << demangle(
                      typeid(std::tuple<typename std::remove_const<Ts>::type...>)
                          .name())
@@ -682,7 +682,7 @@ decltype(auto) add_ctor(pybind11::class_<Class, Options...>& c,
                         std::tuple<Ts...>, Module& module)
 {
     using FieldTypes = typename GetFieldTypes<Ts...>::type;
-    std::cout << "XX " << demangle(typeid(FieldTypes).name()) << '\n';
+    std::cout << "add_ctor " << demangle(typeid(FieldTypes).name()) << '\n';
 
     return add_ctor_impl(c, module, static_cast<FieldTypes*>(nullptr));
 }
@@ -751,7 +751,7 @@ void set_state(Class& c, pybind11::tuple& t,
 
     new (&c) Class();
 
-    NoOp{(
+    NoOp{(c.*std::get<Indices>(fields).second =
                 //std::forward<typename UnpickleConverter<MemberTypes>::CPPType>(
                 std::move(
               UnpickleConverter<MemberTypes>::py2cpp(
@@ -892,6 +892,7 @@ public:
     static void add(Module& m, SFINAE = nullptr)
     {
         auto const type_name = demangle(typeid(Vec).name());
+        std::cout << "binding aux " << type_name << '\n';
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
@@ -908,12 +909,13 @@ public:
         std::enable_if_t<std::is_arithmetic<VecElem>::value>* = nullptr)
     {
         auto const type_name = demangle(typeid(Vec).name());
+        std::cout << "binding aux arith " << type_name << '\n';
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
                 auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                    m.aux_module, mangled_type_name,
-                    pybind11::buffer_protocol());
+                    m.aux_module, mangled_type_name
+                    , pybind11::buffer_protocol());
                 return vec_c;
             },
             type_name, m);
@@ -929,6 +931,7 @@ public:
     static void add(Module& m)
     {
         auto const type_name = demangle(typeid(Ref).name());
+        std::cout << "binding aux " << type_name << '\n';
 
         if (AddAuxTypeGeneric::add_type_checked(
                 [](std::string const& mangled_type_name, Module& m) {
@@ -960,6 +963,7 @@ public:
     static void add(Module& m)
     {
         auto const type_name = demangle(typeid(Ref).name());
+        std::cout << "binding aux " << type_name << '\n';
 
         if (AddAuxTypeGeneric::add_type_checked(
                 [](std::string const& mangled_type_name, Module& m) {
@@ -983,7 +987,6 @@ void add_aux_type(Type<T> t, Module& m)
 {
     // TODO this procedure might create lots of duplicate binding code in many
     // different modules
-    // std::cout << "binding aux " << typeid(T).name() << '\n';
 
     if (!m.aux_module) {
         // TODO make auxiliary module name configurable?
