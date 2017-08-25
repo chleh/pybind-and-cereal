@@ -1,4 +1,5 @@
 #include <vector>
+#include <iostream>
 
 #include "pybind11/pybind11.h"
 #include "pybind11/stl_bind.h"
@@ -23,11 +24,14 @@ PYBIND11_MODULE(tst_vec, m)
                           } catch (pybind11::cast_error) {
                           }
                           try {
-                              auto l = v.cast<pybind11::list>();
+                              std::cout << ">> pre cast\n";
+                              auto it = v.cast<pybind11::iterable>();
+                              std::cout << ">> post cast\n";
                               s.v.clear();
-                              s.v.reserve(l.size());
-                              for (auto& e : l)
+                              // s.v.reserve(it.size());
+                              for (auto& e : it)
                                   s.v.emplace_back(e.cast<int>());
+                              std::cout << ">> post copy\n";
                               return;
                           } catch (pybind11::cast_error) {
                           }
