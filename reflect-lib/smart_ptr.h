@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <pybind11/common.h>
+#include <pybind11/detail/common.h>
 
 namespace reflect_lib
 {
