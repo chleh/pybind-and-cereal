@@ -34,4 +34,18 @@ struct OwnsEmpty {
     REFLECT((OwnsEmpty), FIELDS(e), METHODS())
 };
 
+struct ContainsVectorOfEmpty {
+    // prevent wrong deduction of being copy constructible
+    // caused by std::vector always __declaring__ a copy ctor, even if the
+    // item type is not copy constructible.
+    ContainsVectorOfEmpty(ContainsVectorOfEmpty const&) = delete;
+
+    // std::vector<std::unique_ptr<Empty>> v;
+    std::vector<std::string> vs;
+    std::vector<int> vi;
+
+    REFLECT((ContainsVectorOfEmpty), FIELDS(vs, vi), METHODS())
+};
+// static_assert(!std::is_copy_constructible<ContainsVectorOfEmpty>::value, "ERR");
+
 }  // namespace pickle_types
