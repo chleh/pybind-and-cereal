@@ -83,6 +83,35 @@ class TestPickleOwnsEmpty(unittest.TestCase):
         self.assertEqual("5", o.e.what())
 
 
+class TestPickleContainsVectorOfEmpty(unittest.TestCase):
+    def setUp(self):
+        self.filename = "contains_vector_of_empty.pickle"
+        a = pickle_types.DerivedFromEmptyInt()
+        a.i = 5
+        b = pickle_types.DerivedFromEmptyString()
+        b.s = "Hello!"
+        c = pickle_types.ContainsVectorOfEmpty()
+        c.vs = [ "a", "b" ]
+        c.vi = [ 1, 2, 3 ]
+        c.v = [ a, b ]
+
+        with open(self.filename, "wb") as fh:
+            pickle.dump(c, fh, -1)
+
+    def test_unpickle(self):
+        with open(self.filename, "rb") as fh:
+            c = pickle.load(fh)
+        os.unlink(self.filename)
+
+        v = c.v
+        self.assertEqual(2, len(v))
+        self.assertEqual("5", v[0].what())
+        self.assertEqual("Hello!", v[1].what())
+
+        self.assertEqual(["a", "b"], c.vs)
+        self.assertEqual([1, 2, 3], c.vi)
+
+
 if __name__ == '__main__':
     unittest.main()
 
