@@ -44,6 +44,14 @@ struct Module {
 namespace detail
 {
 template <typename T>
+struct IsCopyConstructible : std::is_copy_constructible<T> {
+};
+
+template <typename T, typename A>
+struct IsCopyConstructible<std::vector<T, A>> : IsCopyConstructible<T> {
+};
+
+template <typename T>
 class UniquePtrReference
 {
 public:
@@ -182,7 +190,7 @@ struct ArgumentConverterImpl<CPPType_, false> {
 template <typename CPPType_>
 struct ArgumentConverter
     : ArgumentConverterImpl<CPPType_,
-                            std::is_copy_constructible<CPPType_>::value> {
+                            IsCopyConstructible<CPPType_>::value> {
 };
 
 template <typename CPPType_>
@@ -396,17 +404,19 @@ struct UnpickleConverterImpl {
 template <typename CPPType_>
 struct UnpickleConverterImpl<CPPType_, false> {
     using CPPType = CPPType_&&;
-    using PyType = RValueReference<CPPType_>&;
-    using AuxType = PyType;
+    //using PyType = RValueReference<CPPType_>&;
+    //using AuxType = PyType;
+    using PyType = CPPType;
+    using AuxType = CPPType_;
 
-    static CPPType py2cpp(PyType o) { return o.get(); }
-    static CPPType py2cpp(RValueReference<CPPType_>&& o) { return o.get(); }
+    static CPPType py2cpp(PyType o) { return std::move(o); }
+    // static CPPType py2cpp(RValueReference<CPPType_>&& o) { return o.get(); }
 };
 
 template <typename CPPType_>
 struct UnpickleConverter
     : UnpickleConverterImpl<CPPType_,
-                            std::is_copy_constructible<CPPType_>::value> {
+                            IsCopyConstructible<CPPType_>::value> {
 };
 
 template <typename CPPType_>
@@ -531,12 +541,6 @@ struct UnpickleConverter<std::unique_ptr<P, D> const&> {
 
 // end unpickle converters /////////////////////////////////////////////////////
 
-
-
-
-
-
-
 template <typename T>
 void add_aux_type(Type<T> t, Module& m);
 
@@ -606,7 +610,7 @@ decltype(auto) add_ctor(pybind11::class_<Class, Cs...>& c)
 
     // TODO extend for trampoline classes?
     return add_ctor_if_copy_constructible(c,
-                                          std::is_copy_constructible<Class>{});
+                                          IsCopyConstructible<Class>{});
 }
 
 template <typename... Ts>
@@ -721,7 +725,11 @@ template <typename Res, typename Arg>
 Res my_cast(Arg&& arg)
 {
     try {
-        return std::forward<Arg>(arg).template cast<Res>();
+        // return std::forward<Arg>(arg).template cast<Res>();
+        // Res r(std::move(arg).template cast<Res>());
+        pybind11::object obj(arg);
+        Res r = std::move(obj).cast<Res>();
+        return r;
     } catch (std::exception) {
         std::cout << "Error casting:\n  from " << demangle(typeid(Arg).name())
                   << "\n  to" << demangle(typeid(Res).name()) << '\n';
@@ -743,18 +751,13 @@ void set_state(Class& c, pybind11::tuple& t,
 
     new (&c) Class();
 
-    NoOp{(c.*std::get<Indices>(fields).second =
+    NoOp{(
+                //std::forward<typename UnpickleConverter<MemberTypes>::CPPType>(
+                std::move(
               UnpickleConverter<MemberTypes>::py2cpp(
                   my_cast<std::remove_reference_t<
                       typename UnpickleConverter<MemberTypes>::PyType>>(
-                      t[Indices])))...};
-#if 0
-    NoOp{(c.*std::get<Indices>(fields).second =
-              ArgumentConverter<MemberTypes>::py2cpp(
-                  t[Indices]
-                      .cast<std::remove_reference_t<typename ArgumentConverter<
-                          MemberTypes>::AuxType>>()))...};
-#endif
+                      t[Indices]))))...};
 }
 
 template <class Class, typename BoolConst, class... Options,
@@ -884,7 +887,25 @@ private:
     using Vec = std::vector<VecElem, VecAlloc>;
 
 public:
-    static void add(Module& m)
+    // base case
+    template <typename SFINAE = void*>
+    static void add(Module& m, SFINAE = nullptr)
+    {
+        auto const type_name = demangle(typeid(Vec).name());
+
+        AddAuxTypeGeneric::add_type_checked(
+            [](std::string const& mangled_type_name, Module& m) {
+                auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
+                    m.aux_module, mangled_type_name);
+                return vec_c;
+            },
+            type_name, m);
+    }
+
+    // overload for arithmetic types
+    static void add(
+        Module& m,
+        std::enable_if_t<std::is_arithmetic<VecElem>::value>* = nullptr)
     {
         auto const type_name = demangle(typeid(Vec).name());
 
