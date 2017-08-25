@@ -7,3 +7,6 @@ reflect_lib_target_link_libraries(types_one PRIVATE reflection)
 
 pybind11_add_module(tst tst.cpp)
 pybind11_add_module(tst_vec tst_vec.cpp)
+
+add_executable(tst_ref tst_ref.cpp)
+target_link_libraries(tst_ref PRIVATE pybind11::embed)
