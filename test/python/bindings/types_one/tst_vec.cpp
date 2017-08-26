@@ -6,6 +6,7 @@
 
 struct S {
     std::vector<int> v;
+    int i;
 };
 
 PYBIND11_MAKE_OPAQUE(std::vector<int>)
@@ -38,13 +39,14 @@ PYBIND11_MODULE(tst_vec, m)
                           throw pybind11::type_error("wrong argument type");
                       })
         .def("__getstate__",
-             [](S const& s) { return pybind11::make_tuple(&s.v); })
+             [](S const& s) { return pybind11::make_tuple(&s.v, s.i); })
         .def("__setstate__", [](S& s, pybind11::tuple& t) {
-            if (t.size() != 1)
+            if (t.size() != 2)
                 throw std::runtime_error("Invalid state!");
             new (&s) S();
 
             s.v = std::move(t[0]).cast<std::vector<int>>();
+            s.i = t[1].cast<int>();
         });
 
     pybind11::bind_vector<std::vector<int>>(
