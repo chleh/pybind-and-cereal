@@ -1,6 +1,6 @@
 #pragma once
-#pragma once
 
+#include <iostream>
 #include <memory>
 #include "reflect-lib/reflect-macros.h"
 
@@ -9,7 +9,9 @@ namespace pickle_types
 struct Empty {
     virtual std::string what() const = 0;
 
-    virtual ~Empty() = default;
+    virtual ~Empty() {
+        std::cout << "!!!! destroying Empty " << typeid(*this).name() << std::endl;
+    }
 
     REFLECT((Empty), FIELDS(), METHODS(what))
 };
@@ -35,7 +37,15 @@ struct OwnsEmpty {
 };
 
 struct ContainsVectorOfEmpty {
-    ContainsVectorOfEmpty() = default;
+    ContainsVectorOfEmpty() {
+        auto i = std::make_shared<DerivedFromEmptyInt>();
+        i->i = 5;
+        v.push_back(i);
+        auto s = std::make_shared<DerivedFromEmptyString>();
+        s->s = "Hello!";
+        v.push_back(s);
+    }
+
     ContainsVectorOfEmpty(ContainsVectorOfEmpty&&) = default;
     // prevent wrong deduction of being copy constructible
     // caused by std::vector always __declaring__ a copy ctor, even if the
