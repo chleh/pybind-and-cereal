@@ -53,13 +53,14 @@ PYBIND11_MODULE(tst_vec, m)
         m, "vectorInt", pybind11::buffer_protocol())
         .def("__getstate__",
              [](std::vector<int> const& v) {
-                 auto l = pybind11::list();
-                 for (int i : v)
-                     l.append(i);
+                 auto l = pybind11::list(v.size());
+                 for (std::size_t i=0; i<v.size(); ++i)
+                     l[i] = v[i];
                  return l;
              })
         .def("__setstate__", [](std::vector<int>& v, pybind11::list l) {
             new (&v) std::vector<int>();
+            v.reserve(pybind11::len(l));
             for (auto& e : l)
                 v.emplace_back(e.cast<int>());
         });
