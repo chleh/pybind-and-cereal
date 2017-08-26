@@ -37,14 +37,13 @@ PYBIND11_MODULE(tst_vec, m)
                           }
                           throw pybind11::type_error("wrong argument type");
                       })
-        .def("__getstate__",
-             [](S const& s) { return pybind11::make_tuple(s.v); })
-        .def("__setstate__", [](S& s, pybind11::tuple& t) {
-            if (t.size() != 1)
-                throw std::runtime_error("Invalid state!");
+        .def("__getstate__", [](S const& s) { return &s.v; },
+             pybind11::return_value_policy::reference_internal)
+        .def("__setstate__", [](S& s, std::vector<int>& v) {
             new (&s) S();
 
-            s.v = t[0].cast<std::vector<int>>();
+            // s.v = t.cast<std::vector<int>>();
+            s.v = std::move(v); //t.cast<std::vector<int>>();
         });
 
     pybind11::bind_vector<std::vector<int>>(
