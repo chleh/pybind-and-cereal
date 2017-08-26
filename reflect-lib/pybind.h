@@ -7,6 +7,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
+#include <pybind11/numpy.h>
 
 #include "reflect-macros.h"
 #include "remangle.h"
@@ -896,8 +897,24 @@ public:
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
-                auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                    m.aux_module, mangled_type_name);
+                auto vec_c =
+                    pybind11::bind_vector<Vec, smart_ptr<Vec>>(
+                        m.aux_module, mangled_type_name)
+                        .def("__getstate__",
+                             [](Vec const& v) {
+                                 auto l = pybind11::list(v.size());
+                                 for (std::size_t i = 0; i < v.size(); ++i) {
+                                     // TODO try to save copies: use &v[i] or v[i].get()
+                                     l[i] = v[i];
+                                 }
+                                 return l;
+                             })
+                        .def("__setstate__", [](Vec& v, pybind11::list& l) {
+                            new (&v) Vec();
+                            v.reserve(pybind11::len(l));
+                            for (auto& e : l)
+                                v.emplace_back(std::move(e).cast<VecElem>());
+                        });
                 return vec_c;
             },
             type_name, m);
@@ -913,9 +930,30 @@ public:
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
-                auto vec_c = pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                    m.aux_module, mangled_type_name
-                    , pybind11::buffer_protocol());
+                auto vec_c =
+                    pybind11::bind_vector<Vec, smart_ptr<Vec>>(
+                        m.aux_module, mangled_type_name
+                            /*, pybind11::buffer_protocol()*/)
+                        .def("__getstate__",
+                             [](Vec const& v) {
+#if 0
+                                 return pybind11::array(v.size(), v.data());
+#else
+                                 auto l = pybind11::list(v.size());
+                                 for (std::size_t i = 0; i < v.size(); ++i) {
+                                     // TODO try to save copies: use &v[i] or
+                                     // v[i].get()
+                                     l[i] = v[i];
+                                 }
+                                 return l;
+#endif
+                             })
+                        .def("__setstate__", [](Vec& v, pybind11::list& l) {
+                            new (&v) Vec();
+                            v.reserve(pybind11::len(l));
+                            for (auto& e : l)
+                                v.emplace_back(std::move(e).cast<VecElem>());
+                        });
                 return vec_c;
             },
             type_name, m);
