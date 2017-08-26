@@ -25,6 +25,7 @@ namespace reflect_lib
 struct Module {
     explicit Module(pybind11::module module_) : module(module_)
     {
+        std::cout << "\n========== new module ==========\n\n";
         if (!pybind11::hasattr(module, "all_types")) {
             module.add_object("all_types", pybind11::dict{});
         }
@@ -179,7 +180,7 @@ struct ArgumentConverterImpl {
 // TODO: type that is neither copyable nor movable
 // not copy constructible CPPType_
 template <typename CPPType_>
-struct ArgumentConverterImpl<CPPType_, false> {
+struct ArgumentConverterImpl<CPPType_, false /* IsCopyConstructible */> {
     using CPPType = CPPType_&&;
     using PyType = RValueReference<CPPType_>&;
     using AuxType = PyType;
@@ -893,10 +894,11 @@ public:
     static void add(Module& m, SFINAE = nullptr)
     {
         auto const type_name = demangle(typeid(Vec).name());
-        std::cout << "binding aux " << type_name << '\n';
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
+                std::cout << "binding aux " << demangle2(mangled_type_name)
+                          << '\n';
                 auto vec_c =
                     pybind11::bind_vector<Vec, smart_ptr<Vec>>(
                         m.aux_module, mangled_type_name)
@@ -926,10 +928,11 @@ public:
         std::enable_if_t<std::is_arithmetic<VecElem>::value>* = nullptr)
     {
         auto const type_name = demangle(typeid(Vec).name());
-        std::cout << "binding aux arith " << type_name << '\n';
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
+                std::cout << "binding aux arith "
+                          << demangle2(mangled_type_name) << '\n';
                 auto vec_c =
                     pybind11::bind_vector<Vec, smart_ptr<Vec>>(
                         m.aux_module, mangled_type_name
@@ -1099,8 +1102,17 @@ private:
             pybind11::return_value_policy::reference_internal);
 
         // set concrete type Res
-        auto setter = [member_ptr](
+        std::string const name_(name);
+        auto setter = [member_ptr, name_](
             Class& c, typename ArgumentConverter<Res>::PyType value) {
+            std::cout
+                << "setting " << name_
+                << "\n  Class:  " << demangle(typeid(Class).name())
+                << "\n  Res:    " << demangle(typeid(Res).name())
+                << "\n  PyType: "
+                << demangle(
+                       typeid(typename ArgumentConverter<Res>::PyType).name())
+                << std::endl;
             c.*member_ptr = ArgumentConverter<Res>::py2cpp(
                 std::forward<typename ArgumentConverter<Res>::PyType>(value));
         };
