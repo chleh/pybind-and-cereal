@@ -854,7 +854,7 @@ struct AddAuxTypeGeneric {
     {
         auto const mangled_name = mangle(name);
 
-        if (!pybind11::hasattr(m.aux_module, mangled_name.c_str())) {
+        if (!pybind11::hasattr(m.module, mangled_name.c_str())) {
             auto const aux = f(mangled_name, m);
 
             if (static_cast<bool>(aux)) {
@@ -862,10 +862,12 @@ struct AddAuxTypeGeneric {
                     throw std::logic_error(
                         "Binding present in all_types, but not yet in aux "
                         "module.");
+#if 0
                 if (m.aux_types.contains(name.c_str()))
                     throw std::logic_error(
                         "Binding present in aux_types, but not yet in aux "
                         "module.");
+#endif
 
                 m.all_types[name.c_str()] = aux;
                 m.aux_types[name.c_str()] = aux;
@@ -901,7 +903,7 @@ public:
                           << '\n';
                 auto vec_c =
                     pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                        m.aux_module, mangled_type_name)
+                        m.module, mangled_type_name)
                         .def("__getstate__",
                              [](Vec const& v) {
                                  auto l = pybind11::list(v.size());
@@ -935,7 +937,7 @@ public:
                           << demangle2(mangled_type_name) << '\n';
                 auto vec_c =
                     pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                        m.aux_module, mangled_type_name
+                        m.module, mangled_type_name
                             /*, pybind11::buffer_protocol()*/)
                         .def("__getstate__",
                              [](Vec const& v) {
@@ -977,7 +979,7 @@ public:
         if (AddAuxTypeGeneric::add_type_checked(
                 [](std::string const& mangled_type_name, Module& m) {
                     auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
-                        m.aux_module, mangled_type_name.c_str());
+                        m.module, mangled_type_name.c_str());
                     return ref_c;
                 },
                 type_name, m)) {
@@ -1009,7 +1011,7 @@ public:
         if (AddAuxTypeGeneric::add_type_checked(
                 [](std::string const& mangled_type_name, Module& m) {
                     auto ref_c = pybind11::class_<Ref, smart_ptr<Ref>>(
-                        m.aux_module, mangled_type_name.c_str());
+                        m.module, mangled_type_name.c_str());
                     return ref_c;
                 },
                 type_name, m)) {
