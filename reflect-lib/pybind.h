@@ -384,6 +384,31 @@ struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
 
 
 // TODO reduce duplicate code
+// pickle converters ///////////////////////////////////////////////////////////
+
+template <typename CPPType>
+struct PickleConverter {
+    static CPPType const* cpp2py(CPPType const& o)
+    {
+        return &o;
+    }
+};
+
+template <typename P, typename D>
+struct PickleConverter<std::unique_ptr<P, D>> {
+    static P const* cpp2py(std::unique_ptr<P, D> const& p) { return p.get(); }
+};
+
+template <typename P>
+struct PickleConverter<std::shared_ptr<P>> {
+    static P const* cpp2py(std::shared_ptr<P> const& p) { return p.get(); }
+};
+
+// end pickle converters ///////////////////////////////////////////////////////
+
+
+
+// TODO reduce duplicate code
 // unpickle converters /////////////////////////////////////////////////////////
 
 // copy constructible CPPType_
@@ -706,7 +731,7 @@ decltype(auto) get_state(Class const& c,
                          std::index_sequence<Indices...>)
 {
     return pybind11::make_tuple(
-        ReturnValueConverter<MemberTypes const&>::cpp2py(
+        PickleConverter<MemberTypes>::cpp2py(
             c.*std::get<Indices>(fields).second)...);
 }
 
@@ -890,6 +915,36 @@ struct AddAuxType<std::vector<VecElem, VecAlloc>> {
 private:
     using Vec = std::vector<VecElem, VecAlloc>;
 
+    template <typename T>
+    static decltype(auto) getstate(T*)
+    {
+        return [](Vec const& v) {
+            std::cout << "  copying list " << demangle(typeid(T).name()) << std::endl;
+            auto l = pybind11::list(v.size());
+            for (std::size_t i = 0; i < v.size(); ++i) {
+                std::cout << "  copying list " << i << std::endl;
+                // TODO try to save copies: use &v[i] or v[i].get()
+                l[i] = v[i];
+            }
+            return l;
+        };
+    }
+
+    template <typename T>
+    static decltype(auto) getstate(std::shared_ptr<T>*)
+    {
+        return [](Vec const& v) {
+            std::cout << "  copying list (shared_ptr) " << demangle(typeid(std::shared_ptr<T>).name()) << std::endl;
+            auto l = pybind11::list(v.size());
+            for (std::size_t i = 0; i < v.size(); ++i) {
+                // TODO try to save copies: use &v[i] or v[i].get()
+                std::cout << "  copying list (shared_ptr) " << i << " " << demangle(typeid(*v[i]).name()) << std::endl;
+                l[i] = v[i].get();
+            }
+            return l;
+        };
+    }
+
 public:
     // base case
     template <typename SFINAE = void*>
@@ -905,14 +960,7 @@ public:
                     pybind11::bind_vector<Vec, smart_ptr<Vec>>(
                         m.module, mangled_type_name)
                         .def("__getstate__",
-                             [](Vec const& v) {
-                                 auto l = pybind11::list(v.size());
-                                 for (std::size_t i = 0; i < v.size(); ++i) {
-                                     // TODO try to save copies: use &v[i] or v[i].get()
-                                     l[i] = v[i];
-                                 }
-                                 return l;
-                             })
+                             getstate(static_cast<VecElem*>(nullptr)))
                         .def("__setstate__", [](Vec& v, pybind11::list& l) {
                             new (&v) Vec();
                             v.reserve(pybind11::len(l));
@@ -938,7 +986,7 @@ public:
                 auto vec_c =
                     pybind11::bind_vector<Vec, smart_ptr<Vec>>(
                         m.module, mangled_type_name
-                            /*, pybind11::buffer_protocol()*/)
+                            , pybind11::buffer_protocol())
                         .def("__getstate__",
                              [](Vec const& v) {
 #if 0
