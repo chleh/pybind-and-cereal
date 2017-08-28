@@ -961,17 +961,11 @@ public:
                         m.module, mangled_type_name)
                         .def("__getstate__",
                              getstate(static_cast<VecElem*>(nullptr)))
-                        .def("__setstate__",
-                             [](Vec& v, pybind11::list& l) {
-                                 new (&v) Vec();
-                                 v.reserve(pybind11::len(l));
-                                 for (auto& e : l)
-                                     v.emplace_back(
-                                         std::move(e).cast<VecElem>());
-                             })
-                        .def("__init__", [](Vec & v, pybind11::iterable it) {
+                        .def("__setstate__", [](Vec& v, pybind11::list& l) {
                             new (&v) Vec();
-                            std::cout << "######### overwritten ############\n";
+                            v.reserve(pybind11::len(l));
+                            for (auto& e : l)
+                                v.emplace_back(std::move(e).cast<VecElem>());
                         });
                 return vec_c;
             },

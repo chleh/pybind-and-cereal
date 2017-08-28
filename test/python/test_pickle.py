@@ -98,8 +98,7 @@ class TestPickleContainsVectorOfEmpty(unittest.TestCase):
 
         vi = aux.aux_types["std::vector<int, std::allocator<int> >"]([ 1, 2, 3 ])
         c.vi = vi
-        v = aux.aux_types["std::vector<std::shared_ptr<pickle_types::Empty>, std::allocator<std::shared_ptr<pickle_types::Empty> > >"]([ a, b ])
-        help(v)
+        #v = aux.aux_types["std::vector<std::shared_ptr<pickle_types::Empty>, std::allocator<std::shared_ptr<pickle_types::Empty> > >"]([ a, b ])
         #c.v = v
         print("OK")
         sys.stdout.flush()
