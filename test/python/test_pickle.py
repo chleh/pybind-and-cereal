@@ -98,7 +98,7 @@ class TestPickleContainsVectorOfEmpty(unittest.TestCase):
 
         vi = aux.aux_types["std::vector<int, std::allocator<int> >"]([ 1, 2, 3 ])
         c.vi = vi
-        v = aux.aux_types["std::vector<std::shared_ptr<pickle_types::Empty>, std::allocator<std::shared_ptr<pickle_types::Empty> > >"]([ a, b ])
+        v = [ a, b ]
         c.v = v
         print("OK")
         sys.stdout.flush()
@@ -131,6 +131,49 @@ class TestPickleContainsVectorOfEmpty(unittest.TestCase):
         for i_ref, i_act in zip([1, 2, 3], c.vi):
             self.assertEqual(i_ref, i_act)
 
+
+class TestPickleContainsVectorOfUniquePtrToEmpty(unittest.TestCase):
+    def setUp(self):
+        self.filename = "contains_vector_of_unique_ptr_to_empty.pickle"
+        a = pickle_types.DerivedFromEmptyInt()
+        a.i = 9
+        b = pickle_types.DerivedFromEmptyString()
+        b.s = "Hi!"
+        c = pickle_types.ContainsVectorOfEmpty()
+        #c.vs = [ "a", "b" ]
+        vi = [ 1, 2, 3 ]
+        #c.vi = vi
+
+        u = [ a, b ]
+
+        print("OK 0 XXXXXXXXXXXX")
+        sys.stdout.flush()
+
+        c.u = u
+        print(c.u[0].what())
+
+        print("OK 1 XXXXXXXXXXXX")
+        sys.stdout.flush()
+
+        with open(self.filename, "wb") as fh:
+            pickle.dump(c, fh, -1)
+        print("OK 2 XXXXXXXXXXXX")
+        sys.stdout.flush()
+
+    def test_unpickle(self):
+        with open(self.filename, "rb") as fh:
+            c = pickle.load(fh)
+        os.unlink(self.filename)
+
+        u = c.u
+        self.assertEqual(2, len(u))
+        self.assertEqual("9", u[0].what())
+        self.assertEqual("Hi!", u[1].what())
+
+        for s_ref, s_act in zip(["a", "b"], c.vs):
+            self.assertEqual(s_ref, s_act)
+        for i_ref, i_act in zip([1, 2, 3], c.vi):
+            self.assertEqual(i_ref, i_act)
 
 if __name__ == '__main__':
     unittest.main()

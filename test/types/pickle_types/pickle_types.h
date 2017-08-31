@@ -56,8 +56,9 @@ struct ContainsVectorOfEmpty {
     std::vector<std::shared_ptr<Empty>> v;
     std::vector<std::string> vs;
     std::vector<int> vi;
+    std::vector<std::shared_ptr<Empty>> u;
 
-    REFLECT((ContainsVectorOfEmpty), FIELDS(v, vs, vi), METHODS())
+    REFLECT((ContainsVectorOfEmpty), FIELDS(v, vs, vi, u), METHODS())
 };
 // static_assert(!std::is_copy_constructible<ContainsVectorOfEmpty>::value, "ERR");
 
