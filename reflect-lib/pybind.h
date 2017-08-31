@@ -233,6 +233,69 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
     }
 };
 
+template <typename VecElem, typename VecAlloc>
+struct ArgumentConverter<std::vector<VecElem, VecAlloc>> {
+    using CPPType = std::vector<VecElem, VecAlloc>;
+    using PyType = pybind11::object&;
+    using AuxType = void;
+
+    static CPPType py2cpp(PyType o)
+    {
+        using Vec = std::vector<VecElem, VecAlloc>;
+        try {
+            auto& p = o.cast<Vec&>();
+            return p;
+        } catch (pybind11::cast_error e) {
+            std::cout << "  ERR: " << e.what() << '\n';
+            std::cout << "  could not cast to " << demangle(typeid(Vec).name())
+                      << std::endl;
+        }
+        try {
+            auto it = o.cast<pybind11::iterable>();
+            Vec v;
+            for (auto& e : it)
+                v.emplace_back(e.cast<VecElem>());
+            return v;
+        } catch (pybind11::cast_error e) {
+            std::cout << "  ERR: " << e.what() << '\n';
+            std::cout << "  could not cast to pybind11::iterable\n";
+        }
+        throw pybind11::type_error("ERR.");
+    }
+};
+
+template <typename T, typename VecAlloc>
+struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
+    using CPPType = std::vector<std::shared_ptr<T>, VecAlloc>;
+    using PyType = pybind11::object&;
+    using AuxType = void;
+
+    static CPPType py2cpp(PyType o)
+    {
+        using Vec = CPPType;
+        using VecElem = typename Vec::value_type;
+        try {
+            auto& p = o.cast<Vec&>();
+            return p;
+        } catch (pybind11::cast_error e) {
+            std::cout << "  ERR: " << e.what() << '\n';
+            std::cout << "  could not cast to " << demangle(typeid(Vec).name())
+                      << std::endl;
+        }
+        try {
+            auto it = o.cast<pybind11::iterable>();
+            Vec v;
+            for (auto& e : it)
+                v.emplace_back(e.cast<smart_ptr<T>>().new_copied());
+            return v;
+        } catch (pybind11::cast_error e) {
+            std::cout << "  ERR: " << e.what() << '\n';
+            std::cout << "  could not cast to pybind11::iterable\n";
+        }
+        throw pybind11::type_error("ERR.");
+    }
+};
+
 // end argument converters /////////////////////////////////////////////////////
 
 // return value converters /////////////////////////////////////////////////////
