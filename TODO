@@ -67,6 +67,8 @@
 [v] argument converters for move-only fields
 [ ] test passing base and derived types to copy_to_unique_ptr etc.
 [ ] pickling support (maybe problems with const members)
+    [v] pickling std::vector<std::shared_ptr<POLYMORPHIC>>
+    [ ] pickling std::vector<std::unique_ptr<POLYMORPHIC>>
 [ ] remove references from ArgumentConverter::AuxType
 
 

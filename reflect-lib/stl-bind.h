@@ -37,6 +37,7 @@ struct BindVector {
     }
 };
 
+// TODO make vector bindings complete. Also: unique_ptr
 template <typename T, typename Holder>
 struct BindVector<std::vector<std::shared_ptr<T>>, Holder> {
 private:
