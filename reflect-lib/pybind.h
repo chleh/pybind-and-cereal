@@ -888,12 +888,6 @@ struct AddAuxTypeGeneric {
                     throw std::logic_error(
                         "Binding present in all_types, but not yet in aux "
                         "module.");
-#if 0
-                if (m.aux_types.contains(name.c_str()))
-                    throw std::logic_error(
-                        "Binding present in aux_types, but not yet in aux "
-                        "module.");
-#endif
 
                 m.all_types[name.c_str()] = aux;
                 m.aux_types[name.c_str()] = aux;
@@ -916,38 +910,6 @@ struct AddAuxType<std::vector<VecElem, VecAlloc>> {
 private:
     using Vec = std::vector<VecElem, VecAlloc>;
 
-#if 0
-    template <typename T>
-    static decltype(auto) getstate(T*)
-    {
-        return [](Vec const& v) {
-            std::cout << "  copying list " << demangle(typeid(T).name()) << std::endl;
-            auto l = pybind11::list(v.size());
-            for (std::size_t i = 0; i < v.size(); ++i) {
-                std::cout << "  copying list " << i << std::endl;
-                // TODO try to save copies: use &v[i] or v[i].get()
-                l[i] = v[i];
-            }
-            return l;
-        };
-    }
-
-    template <typename T>
-    static decltype(auto) getstate(std::shared_ptr<T>*)
-    {
-        return [](Vec const& v) {
-            std::cout << "  copying list (shared_ptr) " << demangle(typeid(std::shared_ptr<T>).name()) << std::endl;
-            auto l = pybind11::list(v.size());
-            for (std::size_t i = 0; i < v.size(); ++i) {
-                // TODO try to save copies: use &v[i] or v[i].get()
-                std::cout << "  copying list (shared_ptr) " << i << " " << demangle(typeid(*v[i]).name()) << std::endl;
-                l[i] = v[i].get();
-            }
-            return l;
-        };
-    }
-#endif
-
 public:
     // base case
     template <typename SFINAE = void*>
@@ -961,18 +923,6 @@ public:
                           << '\n';
                 auto vec_c = BindVector<Vec, smart_ptr<Vec>>::bind(
                     m.module, mangled_type_name);
-        #if 0
-                    pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                        m.module, mangled_type_name)
-                        .def("__getstate__",
-                             getstate(static_cast<VecElem*>(nullptr)))
-                        .def("__setstate__", [](Vec& v, pybind11::list& l) {
-                            new (&v) Vec();
-                            v.reserve(pybind11::len(l));
-                            for (auto& e : l)
-                                v.emplace_back(std::move(e).cast<VecElem>());
-                        });
-#endif
                 return vec_c;
             },
             type_name, m);
@@ -991,31 +941,6 @@ public:
                           << demangle2(mangled_type_name) << '\n';
                 auto vec_c = BindVector<Vec, smart_ptr<Vec>>::bind(
                     m.module, mangled_type_name);
-#if 0
-                    pybind11::bind_vector<Vec, smart_ptr<Vec>>(
-                        m.module, mangled_type_name
-                            , pybind11::buffer_protocol())
-                        .def("__getstate__",
-                             [](Vec const& v) {
-#if 0
-                                 return pybind11::array(v.size(), v.data());
-#else
-                                 auto l = pybind11::list(v.size());
-                                 for (std::size_t i = 0; i < v.size(); ++i) {
-                                     // TODO try to save copies: use &v[i] or
-                                     // v[i].get()
-                                     l[i] = v[i];
-                                 }
-                                 return l;
-#endif
-                             })
-                        .def("__setstate__", [](Vec& v, pybind11::list& l) {
-                            new (&v) Vec();
-                            v.reserve(pybind11::len(l));
-                            for (auto& e : l)
-                                v.emplace_back(std::move(e).cast<VecElem>());
-                        });
-#endif
                 return vec_c;
             },
             type_name, m);
