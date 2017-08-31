@@ -89,22 +89,24 @@ class TestPickleContainsVectorOfEmpty(unittest.TestCase):
     def setUp(self):
         self.filename = "contains_vector_of_empty.pickle"
         a = pickle_types.DerivedFromEmptyInt()
-        a.i = 5
+        a.i = 7
         b = pickle_types.DerivedFromEmptyString()
-        b.s = "Hello!"
+        b.s = "Hello World!"
         c = pickle_types.ContainsVectorOfEmpty()
         print(aux.aux_types)
         c.vs = aux.aux_types["std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >"]([ "a", "b" ])
 
         vi = aux.aux_types["std::vector<int, std::allocator<int> >"]([ 1, 2, 3 ])
         c.vi = vi
-        #v = aux.aux_types["std::vector<std::shared_ptr<pickle_types::Empty>, std::allocator<std::shared_ptr<pickle_types::Empty> > >"]([ a, b ])
-        #c.v = v
+        v = aux.aux_types["std::vector<std::shared_ptr<pickle_types::Empty>, std::allocator<std::shared_ptr<pickle_types::Empty> > >"]([ a, b ])
+        c.v = v
         print("OK")
         sys.stdout.flush()
         print(a.what())
         print(b.what())
-        #print(v[0].what())
+        print(v[0].what())
+        # print(v.__getstate__())
+        # print([a, b])
 
         print("OK 1.5")
         sys.stdout.flush()
@@ -120,9 +122,9 @@ class TestPickleContainsVectorOfEmpty(unittest.TestCase):
         os.unlink(self.filename)
 
         v = c.v
-        # self.assertEqual(2, len(v))
-        # self.assertEqual("5", v[0].what())
-        # self.assertEqual("Hello!", v[1].what())
+        self.assertEqual(2, len(v))
+        self.assertEqual("7", v[0].what())
+        self.assertEqual("Hello World!", v[1].what())
 
         for s_ref, s_act in zip(["a", "b"], c.vs):
             self.assertEqual(s_ref, s_act)

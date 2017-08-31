@@ -12,6 +12,7 @@
 #include "reflect-macros.h"
 #include "remangle.h"
 #include "smart_ptr.h"
+#include "stl-bind.h"
 #include "util.h"
 
 #include <iostream>
@@ -915,6 +916,7 @@ struct AddAuxType<std::vector<VecElem, VecAlloc>> {
 private:
     using Vec = std::vector<VecElem, VecAlloc>;
 
+#if 0
     template <typename T>
     static decltype(auto) getstate(T*)
     {
@@ -944,6 +946,7 @@ private:
             return l;
         };
     }
+#endif
 
 public:
     // base case
@@ -956,7 +959,9 @@ public:
             [](std::string const& mangled_type_name, Module& m) {
                 std::cout << "binding aux " << demangle2(mangled_type_name)
                           << '\n';
-                auto vec_c =
+                auto vec_c = BindVector<Vec, smart_ptr<Vec>>::bind(
+                    m.module, mangled_type_name);
+        #if 0
                     pybind11::bind_vector<Vec, smart_ptr<Vec>>(
                         m.module, mangled_type_name)
                         .def("__getstate__",
@@ -967,6 +972,7 @@ public:
                             for (auto& e : l)
                                 v.emplace_back(std::move(e).cast<VecElem>());
                         });
+#endif
                 return vec_c;
             },
             type_name, m);
@@ -983,7 +989,9 @@ public:
             [](std::string const& mangled_type_name, Module& m) {
                 std::cout << "binding aux arith "
                           << demangle2(mangled_type_name) << '\n';
-                auto vec_c =
+                auto vec_c = BindVector<Vec, smart_ptr<Vec>>::bind(
+                    m.module, mangled_type_name);
+#if 0
                     pybind11::bind_vector<Vec, smart_ptr<Vec>>(
                         m.module, mangled_type_name
                             , pybind11::buffer_protocol())
@@ -1007,6 +1015,7 @@ public:
                             for (auto& e : l)
                                 v.emplace_back(std::move(e).cast<VecElem>());
                         });
+#endif
                 return vec_c;
             },
             type_name, m);
