@@ -1,3 +1,5 @@
+#pragma once
+
 #include <memory>
 #include <tuple>
 #include <type_traits>
@@ -151,7 +153,8 @@ decltype(auto) get_first_impl2(Predicate&& p, T&& obj, Ts&&... objs);
 
 template <typename Predicate, typename T, typename... Ts>
 // decltype(std::declval<Predicate>()(std::declval<T>()))
-std::unique_ptr<T> get_first_impl3(std::true_type, Predicate&& p, T&& obj, Ts&&... objs)
+std::unique_ptr<T> get_first_impl3(std::true_type, Predicate&& p, T&& obj,
+                                   Ts&&... objs)
 {
     if (p(std::forward<T>(obj)))
         return std::unique_ptr<T>(new T(obj));
@@ -192,6 +195,14 @@ decltype(auto) get_first_impl(Predicate&& p, std::tuple<Ts...>&& t,
     return get_first_impl2(std::forward<Predicate>(p),
                            std::forward<Ts>(std::get<Indices>(t))...);
 }
+
+template <typename T>
+struct IsCopyConstructible : std::is_copy_constructible<T> {
+};
+
+template <typename T, typename A>
+struct IsCopyConstructible<std::vector<T, A>> : IsCopyConstructible<T> {
+};
 
 }  // namespace detail
 
