@@ -17,6 +17,8 @@ endmacro()
 # removed then the generated build system cannot know when to ask CMake to
 # regenerate.
 file(GLOB py_tests LIST_DIRECTORIES false RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "test_*.py")
+# message(STATUS "py tests: ${py_tests}")
+# install (FILES ${py_tests} DESTINATION "share/reflect_lib/test/python")
 foreach(test_name IN LISTS py_tests)
     add_py_test("${test_name}")
 endforeach()
