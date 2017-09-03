@@ -46,6 +46,27 @@ class TestPickleNoncopyableInstance(unittest.TestCase):
         self.assertEqual("Hello!", nc.s)
 
 
+class TestPickleContainsVectorOfIntString(unittest.TestCase):
+    def setUp(self):
+        self.filename = "contains_vector_of_int_and_string.pickle"
+        c = pickle_types.ContainsVectorOfIntString()
+        c.vs = [ "a", "b" ]
+        c.vi = [ 1, 2, 3 ]
+
+        with open(self.filename, "wb") as fh:
+            pickle.dump(c, fh, -1)
+
+    def test_unpickle(self):
+        with open(self.filename, "rb") as fh:
+            c = pickle.load(fh)
+        os.unlink(self.filename)
+
+        for s_ref, s_act in zip(["a", "b"], c.vs):
+            self.assertEqual(s_ref, s_act)
+        for i_ref, i_act in zip([1, 2, 3], c.vi):
+            self.assertEqual(i_ref, i_act)
+
+
 class TestPickleEmptyBaseClass(unittest.TestCase):
     def setUp(self):
         self.filename = "empty_base.pickle"
@@ -93,11 +114,6 @@ class TestPickleContainsVectorOfEmpty(unittest.TestCase):
         b = pickle_types.DerivedFromEmptyString()
         b.s = "Hello World!"
         c = pickle_types.ContainsVectorOfEmpty()
-        print(aux.aux_types)
-        c.vs = aux.aux_types["std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >"]([ "a", "b" ])
-
-        vi = aux.aux_types["std::vector<int, std::allocator<int> >"]([ 1, 2, 3 ])
-        c.vi = vi
         v = [ a, b ]
         c.v = v
         print("OK")
@@ -126,11 +142,6 @@ class TestPickleContainsVectorOfEmpty(unittest.TestCase):
         self.assertEqual("7", v[0].what())
         self.assertEqual("Hello World!", v[1].what())
 
-        for s_ref, s_act in zip(["a", "b"], c.vs):
-            self.assertEqual(s_ref, s_act)
-        for i_ref, i_act in zip([1, 2, 3], c.vi):
-            self.assertEqual(i_ref, i_act)
-
 
 class TestPickleContainsVectorOfUniquePtrToEmpty(unittest.TestCase):
     def setUp(self):
@@ -140,9 +151,6 @@ class TestPickleContainsVectorOfUniquePtrToEmpty(unittest.TestCase):
         b = pickle_types.DerivedFromEmptyString()
         b.s = "Hi!"
         c = pickle_types.ContainsVectorOfEmpty()
-        #c.vs = [ "a", "b" ]
-        vi = [ 1, 2, 3 ]
-        #c.vi = vi
 
         u = [ a, b ]
 
@@ -169,11 +177,6 @@ class TestPickleContainsVectorOfUniquePtrToEmpty(unittest.TestCase):
         self.assertEqual(2, len(u))
         self.assertEqual("9", u[0].what())
         self.assertEqual("Hi!", u[1].what())
-
-        for s_ref, s_act in zip(["a", "b"], c.vs):
-            self.assertEqual(s_ref, s_act)
-        for i_ref, i_act in zip([1, 2, 3], c.vi):
-            self.assertEqual(i_ref, i_act)
 
 if __name__ == '__main__':
     unittest.main()

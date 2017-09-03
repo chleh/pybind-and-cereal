@@ -13,4 +13,5 @@ REFLECT_LIB_PYTHON_MODULE(pickle_types, module)
     m.bind<DerivedFromEmptyString>();
     m.bind<OwnsEmpty>();
     m.bind<ContainsVectorOfEmpty>();
+    m.bind<ContainsVectorOfIntString>();
 }

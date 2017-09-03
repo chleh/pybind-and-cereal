@@ -37,14 +37,7 @@ struct OwnsEmpty {
 };
 
 struct ContainsVectorOfEmpty {
-    ContainsVectorOfEmpty() {
-        auto i = std::make_shared<DerivedFromEmptyInt>();
-        i->i = 5;
-        v.push_back(i);
-        auto s = std::make_shared<DerivedFromEmptyString>();
-        s->s = "Hello!";
-        v.push_back(s);
-    }
+    ContainsVectorOfEmpty() = default;
 
     ContainsVectorOfEmpty(ContainsVectorOfEmpty&&) = default;
     // prevent wrong deduction of being copy constructible
@@ -54,12 +47,17 @@ struct ContainsVectorOfEmpty {
 
     // std::vector<std::unique_ptr<Empty>> v;
     std::vector<std::shared_ptr<Empty>> v;
-    std::vector<std::string> vs;
-    std::vector<int> vi;
     std::vector<std::shared_ptr<Empty>> u;
 
-    REFLECT((ContainsVectorOfEmpty), FIELDS(v, vs, vi, u), METHODS())
+    REFLECT((ContainsVectorOfEmpty), FIELDS(v, u), METHODS())
 };
-// static_assert(!std::is_copy_constructible<ContainsVectorOfEmpty>::value, "ERR");
+
+struct ContainsVectorOfIntString
+{
+    std::vector<std::string> vs;
+    std::vector<int> vi;
+
+    REFLECT((ContainsVectorOfIntString), FIELDS(vs, vi), METHODS())
+};
 
 }  // namespace pickle_types
