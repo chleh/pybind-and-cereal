@@ -237,7 +237,7 @@ template <typename VecElem, typename VecAlloc>
 struct ArgumentConverter<std::vector<VecElem, VecAlloc>> {
     using CPPType = std::vector<VecElem, VecAlloc>;
     using PyType = pybind11::object&;
-    using AuxType = void;
+    using AuxType = CPPType;
 
     static CPPType py2cpp(PyType o)
     {
@@ -268,12 +268,11 @@ template <typename T, typename VecAlloc>
 struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
     using CPPType = std::vector<std::shared_ptr<T>, VecAlloc>;
     using PyType = pybind11::object&;
-    using AuxType = void;
+    using AuxType = CPPType;
 
     static CPPType py2cpp(PyType o)
     {
         using Vec = CPPType;
-        using VecElem = typename Vec::value_type;
         try {
             auto& p = o.cast<Vec&>();
             return p;
