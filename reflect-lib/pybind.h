@@ -220,12 +220,10 @@ void set_state(Class& c, pybind11::tuple& t, std::tuple<MemberTypes...>*,
     if (t.size() != sizeof...(MemberTypes))
         throw std::runtime_error("Invalid state!");
 
-    new (&c) Class(ArgumentConverter<MemberTypes>::py2cpp(
-        t[Indices]
-            .cast<std::remove_reference_t<
-                typename ArgumentConverter<MemberTypes>::AuxType>>())...);
+    new (&c) Class(UnpickleConverter<MemberTypes>::py2cpp(t[Indices])...);
 }
 
+#if 0
 template <typename Res, typename Arg>
 Res my_cast(Arg&& arg)
 {
@@ -242,6 +240,7 @@ Res my_cast(Arg&& arg)
         throw;
     }
 }
+#endif
 
 template <typename Class, typename... PairsNameMember, typename... MemberTypes,
           std::size_t... Indices>
@@ -258,11 +257,7 @@ void set_state(Class& c, pybind11::tuple& t,
     new (&c) Class();
 
     NoOp{(c.*std::get<Indices>(fields).second =
-              // std::forward<typename UnpickleConverter<MemberTypes>::CPPType>(
-          std::move(UnpickleConverter<MemberTypes>::py2cpp(
-              my_cast<std::remove_reference_t<
-                  typename UnpickleConverter<MemberTypes>::PyType>>(
-                  t[Indices]))))...};
+              UnpickleConverter<MemberTypes>::py2cpp(t[Indices]))...};
 }
 
 template <class Class, typename BoolConst, class... Options,

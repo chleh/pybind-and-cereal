@@ -368,15 +368,15 @@ struct PickleConverter<std::shared_ptr<P>> {
 // copy constructible CPPType_
 template <typename CPPType_, bool IsCopyConstructible>
 struct UnpickleConverterImpl {
-    using CPPType = CPPType_ const&;
-    using PyType = CPPType_ const&;
+    using CPPType = CPPType_;
+    using PyType = pybind11::object;
     using AuxType = PyType;
 
     static CPPType py2cpp(PyType o)
     {
         // std::cout << "conversion const&! " << demangle(typeid(PyType).name())
         //           << '\n';
-        return o;
+        return o.cast<CPPType>();
     }
 };
 
@@ -384,21 +384,22 @@ struct UnpickleConverterImpl {
 // not copy constructible CPPType_
 template <typename CPPType_>
 struct UnpickleConverterImpl<CPPType_, false> {
-    using CPPType = CPPType_&&;
-    // using PyType = RValueReference<CPPType_>&;
-    // using AuxType = PyType;
-    using PyType = CPPType;
+    using CPPType = CPPType_;
+    using PyType = pybind11::object;
     using AuxType = CPPType_;
 
-    static CPPType py2cpp(PyType o) { return std::move(o); }
+    static CPPType py2cpp(PyType o) { return std::move(o).cast<CPPType>(); }
     // static CPPType py2cpp(RValueReference<CPPType_>&& o) { return o.get(); }
 };
 
 template <typename CPPType_>
 struct UnpickleConverter
     : UnpickleConverterImpl<CPPType_, IsCopyConstructible<CPPType_>::value> {
+    static_assert(!std::is_reference<CPPType_>::value,
+                  "Reference types not supported by this class template");
 };
 
+#if 0
 template <typename CPPType_>
 struct UnpickleConverter<CPPType_&> {
     using CPPType = CPPType_&;
@@ -428,6 +429,7 @@ struct UnpickleConverter<CPPType_&&> {
 
     static CPPType py2cpp(PyType o) { return o.get(); }
 };
+#endif
 
 template <typename P, typename D>
 struct UnpickleConverter<std::unique_ptr<P, D>> {
@@ -453,6 +455,7 @@ struct UnpickleConverter<std::unique_ptr<P, D>> {
     static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
 };
 
+#if 0
 template <typename P, typename D>
 struct UnpickleConverter<std::unique_ptr<P, D>&&> {
     using CPPType = std::unique_ptr<P, D>&&;
@@ -518,6 +521,7 @@ struct UnpickleConverter<std::unique_ptr<P, D> const&> {
         throw pybind11::type_error("ERR.");
     }
 };
+#endif
 
 template <typename P, typename D>
 struct UnpickleConverter<std::vector<std::unique_ptr<P, D>>> {
