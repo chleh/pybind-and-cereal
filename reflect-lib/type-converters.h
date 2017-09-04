@@ -399,38 +399,6 @@ struct UnpickleConverter
                   "Reference types not supported by this class template");
 };
 
-#if 0
-template <typename CPPType_>
-struct UnpickleConverter<CPPType_&> {
-    using CPPType = CPPType_&;
-    using PyType = CPPType;
-    using AuxType = PyType;
-
-    static CPPType py2cpp(PyType o) { return o; }
-};
-
-template <typename CPPType_>
-struct UnpickleConverter<CPPType_ const&> {
-    using CPPType = CPPType_ const&;
-    using PyType = CPPType;
-    using AuxType = PyType;
-
-    static CPPType py2cpp(PyType o) { return o; }
-};
-
-template <typename CPPType_>
-struct UnpickleConverter<CPPType_&&> {
-    using CPPType = CPPType_&&;
-
-    // TODO static_assert that this is reference type? (for all
-    // UnpickleConverter types)
-    using PyType = RValueReference<CPPType_>&;
-    using AuxType = PyType;
-
-    static CPPType py2cpp(PyType o) { return o.get(); }
-};
-#endif
-
 template <typename P, typename D>
 struct UnpickleConverter<std::unique_ptr<P, D>> {
     using CPPType = std::unique_ptr<P, D>;
@@ -454,74 +422,6 @@ struct UnpickleConverter<std::unique_ptr<P, D>> {
     }
     static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
 };
-
-#if 0
-template <typename P, typename D>
-struct UnpickleConverter<std::unique_ptr<P, D>&&> {
-    using CPPType = std::unique_ptr<P, D>&&;
-    using PyType = pybind11::object;
-    using AuxType = UniquePtrReference<P>;
-
-    static CPPType py2cpp(PyType o)
-    {
-        if (o.is_none()) {
-            none<P, D>.reset();
-            return std::move(none<P, D>);
-        }
-        try {
-            auto* p = o.cast<UniquePtrReference<P>*>();
-            return p->getRValue();
-        } catch (pybind11::cast_error e) {
-            std::cout << "Error: " << e.what() << '\n';
-        }
-        throw pybind11::type_error("ERR.");
-    }
-};
-
-template <typename P, typename D>
-struct UnpickleConverter<std::unique_ptr<P, D>&> {
-    using CPPType = std::unique_ptr<P, D>&;
-    using PyType = pybind11::object;
-    using AuxType = UniquePtrReference<P>;
-
-    static CPPType py2cpp(PyType o)
-    {
-        if (o.is_none()) {
-            none<P, D>.reset();
-            return none<P, D>;
-        }
-        try {
-            auto* p = o.cast<UniquePtrReference<P>*>();
-            return p->get();
-        } catch (pybind11::cast_error e) {
-            std::cout << "Error: " << e.what() << '\n';
-        }
-        throw pybind11::type_error("ERR.");
-    }
-};
-
-template <typename P, typename D>
-struct UnpickleConverter<std::unique_ptr<P, D> const&> {
-    using CPPType = std::unique_ptr<P, D> const&;
-    using PyType = pybind11::object;
-    using AuxType = UniquePtrReference<P>;
-
-    static CPPType py2cpp(PyType o)
-    {
-        if (o.is_none()) {
-            none<P, D>.reset();
-            return none<P, D>;
-        }
-        try {
-            auto* p = o.cast<UniquePtrReference<P>*>();
-            return p->getConst();
-        } catch (pybind11::cast_error e) {
-            std::cout << "Error: " << e.what() << '\n';
-        }
-        throw pybind11::type_error("ERR.");
-    }
-};
-#endif
 
 template <typename P, typename D>
 struct UnpickleConverter<std::vector<std::unique_ptr<P, D>>> {

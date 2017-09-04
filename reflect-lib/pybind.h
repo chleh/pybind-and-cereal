@@ -223,25 +223,6 @@ void set_state(Class& c, pybind11::tuple& t, std::tuple<MemberTypes...>*,
     new (&c) Class(UnpickleConverter<MemberTypes>::py2cpp(t[Indices])...);
 }
 
-#if 0
-template <typename Res, typename Arg>
-Res my_cast(Arg&& arg)
-{
-    try {
-        // return std::forward<Arg>(arg).template cast<Res>();
-        // Res r(std::move(arg).template cast<Res>());
-        pybind11::object obj(arg);
-        std::cout << "!! trying to cast to " << demangle(typeid(Res).name()) << std::endl;
-        Res r = std::move(obj).cast<Res>();
-        return r;
-    } catch (std::exception) {
-        std::cout << "Error casting:\n  from " << demangle(typeid(Arg).name())
-                  << "\n  to" << demangle(typeid(Res).name()) << '\n';
-        throw;
-    }
-}
-#endif
-
 template <typename Class, typename... PairsNameMember, typename... MemberTypes,
           std::size_t... Indices>
 void set_state(Class& c, pybind11::tuple& t,
