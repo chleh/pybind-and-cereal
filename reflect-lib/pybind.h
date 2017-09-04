@@ -233,6 +233,7 @@ Res my_cast(Arg&& arg)
         // return std::forward<Arg>(arg).template cast<Res>();
         // Res r(std::move(arg).template cast<Res>());
         pybind11::object obj(arg);
+        std::cout << "!! trying to cast to " << demangle(typeid(Res).name()) << std::endl;
         Res r = std::move(obj).cast<Res>();
         return r;
     } catch (std::exception) {

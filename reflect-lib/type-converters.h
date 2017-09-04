@@ -1,5 +1,6 @@
 #pragma once
 
+#include "aux-types.h"
 #include "util.h"
 
 namespace reflect_lib
@@ -226,6 +227,37 @@ struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
         try {
             auto& p = o.cast<Vec&>();
             return p;
+        } catch (pybind11::cast_error e) {
+            std::cout << "  ERR: " << e.what() << '\n';
+            std::cout << "  could not cast to " << demangle(typeid(Vec).name())
+                      << std::endl;
+        }
+        try {
+            auto it = o.cast<pybind11::iterable>();
+            Vec v;
+            for (auto& e : it)
+                v.emplace_back(e.cast<smart_ptr<T>>().new_copied());
+            return v;
+        } catch (pybind11::cast_error e) {
+            std::cout << "  ERR: " << e.what() << '\n';
+            std::cout << "  could not cast to pybind11::iterable\n";
+        }
+        throw pybind11::type_error("ERR.");
+    }
+};
+
+template <typename T, typename VecAlloc>
+struct ArgumentConverter<std::vector<std::unique_ptr<T>, VecAlloc>> {
+    using CPPType = std::vector<std::unique_ptr<T>, VecAlloc>;
+    using PyType = pybind11::object&;
+    using AuxType = CPPType;
+
+    static CPPType py2cpp(PyType o)
+    {
+        using Vec = CPPType;
+        try {
+            auto& p = o.cast<RValueReference<Vec>&>();
+            return Vec{p.get()};
         } catch (pybind11::cast_error e) {
             std::cout << "  ERR: " << e.what() << '\n';
             std::cout << "  could not cast to " << demangle(typeid(Vec).name())
@@ -485,6 +517,35 @@ struct UnpickleConverter<std::unique_ptr<P, D> const&> {
         }
         throw pybind11::type_error("ERR.");
     }
+};
+
+template <typename P, typename D>
+struct UnpickleConverter<std::vector<std::unique_ptr<P, D>>> {
+    using CPPType = std::vector<std::unique_ptr<P, D>>;
+    using PyType = pybind11::object;
+    using AuxType = CPPType;
+
+    static CPPType py2cpp(PyType o)
+    {
+        try {
+            auto l = o.cast<pybind11::list>();
+            CPPType vec;
+            vec.reserve(pybind11::len(l));
+            for (auto& e : l)
+                vec.emplace_back(e.cast<smart_ptr<P>>().new_moved());
+            return vec;
+        } catch (pybind11::cast_error e) {
+            std::cout << "Error: " << e.what() << '\n';
+        } catch (std::exception e) {
+            std::cout << "Exc. Error: " << e.what() << '\n';
+        } catch (...) {
+            std::cout << "OTHER EXC!\n";
+        }
+
+        // TODO better error message
+        throw pybind11::type_error("ERR.");
+    }
+    static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
 };
 
 // end unpickle converters /////////////////////////////////////////////////////

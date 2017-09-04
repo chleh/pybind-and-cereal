@@ -47,7 +47,7 @@ struct ContainsVectorOfEmpty {
 
     // std::vector<std::unique_ptr<Empty>> v;
     std::vector<std::shared_ptr<Empty>> v;
-    std::vector<std::shared_ptr<Empty>> u;
+    std::vector<std::unique_ptr<Empty>> u;
 
     REFLECT((ContainsVectorOfEmpty), FIELDS(v, u), METHODS())
 };

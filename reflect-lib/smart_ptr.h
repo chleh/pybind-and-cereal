@@ -4,6 +4,8 @@
 
 #include <pybind11/detail/common.h>
 
+#include "util.h"
+
 namespace reflect_lib
 {
 
@@ -23,7 +25,7 @@ class smart_ptr final
             return nullptr;
         }
 
-        static CopyFct make_copier() { return make_copier(std::is_copy_constructible<T>{}); }
+        static CopyFct make_copier() { return make_copier(detail::IsCopyConstructible<T>{}); }
         static CopyFct make_copier(std::true_type) {
             return [](T const& t){ return new T{t}; };
         }

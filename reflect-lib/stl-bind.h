@@ -152,7 +152,7 @@ public:
         // return pybind11::bind_vector<T_, Holder>(m, name)
         auto cl = pybind11::class_<Vector, Holder>(m, name.c_str());
         cl.def(pybind11::init<>());
-        cl.def(pybind11::init<Vector const&>());
+        // cl.def(pybind11::init<Vector const&>());
         cl.def("__init__", [](Vector& v, pybind11::iterable it) {
             new (&v) Vector();
             try {
