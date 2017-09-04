@@ -438,21 +438,23 @@ struct UnpickleConverter<std::vector<std::unique_ptr<P, D>>> {
             auto l = o.cast<pybind11::list>();
             CPPType vec;
             vec.reserve(pybind11::len(l));
-            for (auto& e : l)
-                vec.emplace_back(e.cast<smart_ptr<P>>().new_moved());
+            for (auto& e : l) {
+                // TODO: check if inc_ref() is correct
+                e.inc_ref(); // Python should not destroy the object.
+                vec.emplace_back(e.cast<P*>());
+            }
             return vec;
         } catch (pybind11::cast_error e) {
-            std::cout << "Error: " << e.what() << '\n';
+            std::cout << "Error: " << e.what() << std::endl;
         } catch (std::exception e) {
             std::cout << "Exc. Error: " << e.what() << '\n';
         } catch (...) {
-            std::cout << "OTHER EXC!\n";
+            std::cout << "OTHER EXC!" << std::endl;
         }
 
         // TODO better error message
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
-    static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
 };
 
 // end unpickle converters /////////////////////////////////////////////////////
