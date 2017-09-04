@@ -11,6 +11,11 @@
 
 #include "reflect-lib/remangle.h"
 
+#define TO_STRING_(x) #x
+#define TO_STRING(x) TO_STRING_(x)
+#define REFLECT_LIB_THROW(type, message) \
+    throw type(std::string(__FILE__ ":" TO_STRING(__LINE__) ": ") + message)
+
 namespace reflect_lib
 {
 template <typename T>

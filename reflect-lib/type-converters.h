@@ -116,7 +116,7 @@ struct ArgumentConverter<std::unique_ptr<P, D>> {
         } catch (pybind11::cast_error) {
         }
         // TODO better error message
-        throw pybind11::type_error("ERR.");
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
     static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
 };
@@ -138,7 +138,7 @@ struct ArgumentConverter<std::unique_ptr<P, D>&&> {
             return p->getRValue();
         } catch (pybind11::cast_error) {
         }
-        throw pybind11::type_error("ERR.");
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
 };
 
@@ -159,7 +159,7 @@ struct ArgumentConverter<std::unique_ptr<P, D>&> {
             return p->get();
         } catch (pybind11::cast_error) {
         }
-        throw pybind11::type_error("ERR.");
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
 };
 
@@ -180,7 +180,7 @@ struct ArgumentConverter<std::unique_ptr<P, D> const&> {
             return p->getConst();
         } catch (pybind11::cast_error) {
         }
-        throw pybind11::type_error("ERR.");
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
 };
 
@@ -211,7 +211,8 @@ struct ArgumentConverter<std::vector<VecElem, VecAlloc>> {
             std::cout << "  ERR: " << e.what() << '\n';
             std::cout << "  could not cast to pybind11::iterable\n";
         }
-        throw pybind11::type_error("ERR.");
+
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
 };
 
@@ -242,7 +243,8 @@ struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
             std::cout << "  ERR: " << e.what() << '\n';
             std::cout << "  could not cast to pybind11::iterable\n";
         }
-        throw pybind11::type_error("ERR.");
+
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
 };
 
@@ -273,7 +275,8 @@ struct ArgumentConverter<std::vector<std::unique_ptr<T>, VecAlloc>> {
             std::cout << "  ERR: " << e.what() << '\n';
             std::cout << "  could not cast to pybind11::iterable\n";
         }
-        throw pybind11::type_error("ERR.");
+
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
 };
 
@@ -418,7 +421,7 @@ struct UnpickleConverter<std::unique_ptr<P, D>> {
             std::cout << "Error: " << e.what() << '\n';
         }
         // TODO better error message
-        throw pybind11::type_error("ERR.");
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
     static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
 };
@@ -447,7 +450,7 @@ struct UnpickleConverter<std::vector<std::unique_ptr<P, D>>> {
         }
 
         // TODO better error message
-        throw pybind11::type_error("ERR.");
+        REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
     }
     static CPPType py2cpp(AuxType&& o) { return o.getRValue(); }
 };
