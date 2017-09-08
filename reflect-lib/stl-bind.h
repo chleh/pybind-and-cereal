@@ -1,7 +1,6 @@
 #pragma once
 
 #include <pybind11/stl_bind.h>
-#include <iostream>
 
 #include "aux-types.h"
 #include "remangle.h"
@@ -19,11 +18,10 @@ struct BindVector {
         return pybind11::bind_vector<T, Holder>(m, name)
             .def("__getstate__",
                  [](T const& v) {
-                     std::cout << "  copying list "
-                               << demangle(typeid(T).name()) << std::endl;
+                     DBUG("  copying list", demangle(typeid(T).name()));
                      auto l = pybind11::list(v.size());
                      for (std::size_t i = 0; i < v.size(); ++i) {
-                         std::cout << "  copying list " << i << std::endl;
+                         DBUG("  copying list", i);
                          // TODO try to save copies: use &v[i] or v[i].get()
                          l[i] = v[i];
                      }
@@ -114,11 +112,10 @@ public:
         cl.def("__len__", &Vector::size);
 
         cl.def("__getstate__", [](Vector const& v) {
-              std::cout << "  copying list " << demangle(typeid(Vector).name())
-                        << std::endl;
+              DBUG("  copying list", demangle(typeid(Vector).name()));
               auto l = pybind11::list(v.size());
               for (std::size_t i = 0; i < v.size(); ++i) {
-                  std::cout << "  copying list " << i << std::endl;
+                  DBUG("  copying list", i);
                   // TODO try to save copies: use &v[i] or v[i].get()
                   l[i] = v[i].get();
               }
@@ -126,8 +123,7 @@ public:
           }).def("__setstate__", [](Vector& v, pybind11::list& l) {
             new (&v) Vector();
             v.reserve(pybind11::len(l));
-            std::cout << "  setting state " << demangle(typeid(Vector).name())
-                      << std::endl;
+            DBUG("  setting state", demangle(typeid(Vector).name()));
             for (auto& e : l) {
                 // v.emplace_back(std::move(e).cast<typename
                 // Vector::value_type>());
@@ -215,11 +211,10 @@ public:
         cl.def("__len__", &Vector::size);
 
         cl.def("__getstate__", [](Vector const& v) {
-              std::cout << "  copying list " << demangle(typeid(Vector).name())
-                        << std::endl;
+              DBUG("  copying list", demangle(typeid(Vector).name()));
               auto l = pybind11::list(v.size());
               for (std::size_t i = 0; i < v.size(); ++i) {
-                  std::cout << "  copying list up " << i << std::endl;
+                  DBUG("  copying list up", i);
                   // TODO try to save copies: use &v[i] or v[i].get()
                   l[i] = v[i].get();
               }
@@ -227,8 +222,7 @@ public:
           }).def("__setstate__", [](Vector& v, pybind11::list& l) {
             new (&v) Vector();
             v.reserve(pybind11::len(l));
-            std::cout << "  setting state " << demangle(typeid(Vector).name())
-                      << std::endl;
+            DBUG("  setting state", demangle(typeid(Vector).name()));
             for (auto& e : l) {
                 // v.emplace_back(std::move(e).cast<typename
                 // Vector::value_type>());

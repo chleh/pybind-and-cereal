@@ -25,8 +25,8 @@ struct ArgumentConverterImpl {
         typename std::enable_if<!std::is_same<T, PyType const>::value,
                                 PyType&>::type* = nullptr)
     {
-        std::cout << "conversion &&! " << demangle(typeid(PyType).name())
-                  << '\n';
+        DBUG("conversion &&!" , demangle(typeid(PyType).name())
+                  );
         return o;
     }
     template <typename T>
@@ -35,15 +35,15 @@ struct ArgumentConverterImpl {
         typename std::enable_if<!std::is_same<T, PyType const>::value,
                                 PyType&>::type* = nullptr)
     {
-        std::cout << "conversion &! " << demangle(typeid(PyType).name())
-                  << '\n';
+        DBUG("conversion &!" , demangle(typeid(PyType).name())
+                  );
         return o;
     }
 #endif
     static CPPType py2cpp(PyType o)
     {
-        // std::cout << "conversion const&! " << demangle(typeid(PyType).name())
-        //           << '\n';
+        // DBUG("conversion const&!" , demangle(typeid(PyType).name())
+        //           );
         return o;
     }
 };
@@ -197,9 +197,8 @@ struct ArgumentConverter<std::vector<VecElem, VecAlloc>> {
             auto& p = o.cast<Vec&>();
             return p;
         } catch (pybind11::cast_error e) {
-            std::cout << "  ERR: " << e.what() << '\n';
-            std::cout << "  could not cast to " << demangle(typeid(Vec).name())
-                      << std::endl;
+            DBUG("  ERR:", e.what());
+            DBUG("  could not cast to", demangle(typeid(Vec).name()));
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -208,8 +207,8 @@ struct ArgumentConverter<std::vector<VecElem, VecAlloc>> {
                 v.emplace_back(e.cast<VecElem>());
             return v;
         } catch (pybind11::cast_error e) {
-            std::cout << "  ERR: " << e.what() << '\n';
-            std::cout << "  could not cast to pybind11::iterable\n";
+            DBUG("  ERR:", e.what());
+            DBUG("  could not cast to pybind11::iterable");
         }
 
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
@@ -229,9 +228,8 @@ struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
             auto& p = o.cast<Vec&>();
             return p;
         } catch (pybind11::cast_error e) {
-            std::cout << "  ERR: " << e.what() << '\n';
-            std::cout << "  could not cast to " << demangle(typeid(Vec).name())
-                      << std::endl;
+            DBUG("  ERR:", e.what());
+            DBUG("  could not cast to", demangle(typeid(Vec).name()));
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -240,8 +238,8 @@ struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
                 v.emplace_back(e.cast<smart_ptr<T>>().new_copied());
             return v;
         } catch (pybind11::cast_error e) {
-            std::cout << "  ERR: " << e.what() << '\n';
-            std::cout << "  could not cast to pybind11::iterable\n";
+            DBUG("  ERR:", e.what());
+            DBUG("  could not cast to pybind11::iterable");
         }
 
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
@@ -261,9 +259,8 @@ struct ArgumentConverter<std::vector<std::unique_ptr<T>, VecAlloc>> {
             auto& p = o.cast<RValueReference<Vec>&>();
             return Vec{p.get()};
         } catch (pybind11::cast_error e) {
-            std::cout << "  ERR: " << e.what() << '\n';
-            std::cout << "  could not cast to " << demangle(typeid(Vec).name())
-                      << std::endl;
+            DBUG("  ERR:", e.what());
+            DBUG("  could not cast to", demangle(typeid(Vec).name()));
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -272,8 +269,8 @@ struct ArgumentConverter<std::vector<std::unique_ptr<T>, VecAlloc>> {
                 v.emplace_back(e.cast<smart_ptr<T>>().new_copied());
             return v;
         } catch (pybind11::cast_error e) {
-            std::cout << "  ERR: " << e.what() << '\n';
-            std::cout << "  could not cast to pybind11::iterable\n";
+            DBUG("  ERR:", e.what());
+            DBUG("  could not cast to pybind11::iterable");
         }
 
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
@@ -377,8 +374,8 @@ struct UnpickleConverterImpl {
 
     static CPPType py2cpp(PyType o)
     {
-        // std::cout << "conversion const&! " << demangle(typeid(PyType).name())
-        //           << '\n';
+        // DBUG("conversion const&!" , demangle(typeid(PyType).name())
+        //           );
         return o.cast<CPPType>();
     }
 };
@@ -418,7 +415,7 @@ struct UnpickleConverter<std::unique_ptr<P, D>> {
             auto p = o.cast<smart_ptr<P>>();
             return std::unique_ptr<P, D>(p.release());
         } catch (pybind11::cast_error e) {
-            std::cout << "Error: " << e.what() << '\n';
+            DBUG("Error:", e.what());
         }
         // TODO better error message
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
@@ -440,16 +437,16 @@ struct UnpickleConverter<std::vector<std::unique_ptr<P, D>>> {
             vec.reserve(pybind11::len(l));
             for (auto& e : l) {
                 // TODO: check if inc_ref() is correct
-                e.inc_ref(); // Python should not destroy the object.
+                e.inc_ref();  // Python should not destroy the object.
                 vec.emplace_back(e.cast<P*>());
             }
             return vec;
         } catch (pybind11::cast_error e) {
-            std::cout << "Error: " << e.what() << std::endl;
+            DBUG("Error:", e.what());
         } catch (std::exception e) {
-            std::cout << "Exc. Error: " << e.what() << '\n';
+            DBUG("Exc. Error:", e.what());
         } catch (...) {
-            std::cout << "OTHER EXC!" << std::endl;
+            DBUG("OTHER EXC!");
         }
 
         // TODO better error message

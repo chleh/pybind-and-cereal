@@ -6,8 +6,9 @@
 #include <utility>
 #include <vector>
 
-#include <iostream>
 #include <typeinfo>
+
+#include <pybind11/pybind11.h>
 
 #include "reflect-lib/remangle.h"
 
@@ -15,6 +16,9 @@
 #define TO_STRING(x) TO_STRING_(x)
 #define REFLECT_LIB_THROW(type, message) \
     throw type(std::string(__FILE__ ":" TO_STRING(__LINE__) ": ") + message)
+
+#define DBUG(...) \
+    pybind11::print(__VA_ARGS__, "\t\t(" __FILE__ ":" TO_STRING(__LINE__) ")")
 
 namespace reflect_lib
 {

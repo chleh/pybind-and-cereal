@@ -17,8 +17,6 @@
 #include "type-converters.h"
 #include "util.h"
 
-#include <iostream>
-
 // TODO check that claim!
 // Why not unique_ptr? --> Because it has to be copyable.
 PYBIND11_DECLARE_HOLDER_TYPE(T, reflect_lib::smart_ptr<T>)
@@ -28,7 +26,7 @@ namespace reflect_lib
 struct Module {
     explicit Module(pybind11::module module_) : module(module_)
     {
-        std::cout << "\n========== new module ==========\n\n";
+        DBUG("\n========== new module ==========");
         if (!pybind11::hasattr(module, "all_types")) {
             module.add_object("all_types", pybind11::dict{});
         }
@@ -139,7 +137,7 @@ template <class Class, class... Options, typename... Ts>
 decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c, Module&,
                              std::tuple<Ts...>*, std::false_type)
 {
-    std::cout << "  no special ctors\n";
+    DBUG("  no special ctors");
     return c;
 }
 
@@ -147,7 +145,7 @@ template <class Class, class... Options, typename... Ts>
 decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
                              Module& module, std::tuple<Ts...>*, std::true_type)
 {
-    std::cout << "  some special ctors\n";
+    DBUG("  some special ctors");
 
     // add auxiliary bindings
     visit([&](auto t) { add_aux_type(t, module); },
@@ -169,12 +167,10 @@ decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
                              Module& module, std::tuple<Ts...>* t)
 {
 #if 1
-    std::cout << "add_ctor_impl " << demangle(typeid(Class).name()) << '\n';
-    std::cout << "  ...tor_impl "
-              << demangle(
-                     typeid(std::tuple<typename std::remove_const<Ts>::type...>)
-                         .name())
-              << '\n';
+    DBUG("add_ctor_impl", demangle(typeid(Class).name()));
+    DBUG("  ...tor_impl",
+         demangle(typeid(std::tuple<typename std::remove_const<Ts>::type...>)
+                      .name()));
 #endif
     return add_ctor_impl(
         c, module, t,
@@ -188,7 +184,7 @@ decltype(auto) add_ctor(pybind11::class_<Class, Options...>& c,
                         std::tuple<Ts...>, Module& module)
 {
     using FieldTypes = typename GetFieldTypes<Ts...>::type;
-    std::cout << "add_ctor " << demangle(typeid(FieldTypes).name()) << '\n';
+    DBUG("add_ctor", demangle(typeid(FieldTypes).name()));
 
     return add_ctor_impl(c, module, static_cast<FieldTypes*>(nullptr));
 }
@@ -248,7 +244,7 @@ decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
                                  std::true_type /* has_suitable_ctor */,
                                  BoolConst /* is_default_constructible */)
 {
-    std::cout << "  adding get/set state\n";
+    DBUG("  adding get/set state");
     using Indices = std::index_sequence_for<MemberTypes...>;
     c.def("__getstate__", [](Class const& instance) {
         return get_state(instance, Class::Meta::fields(),
@@ -267,7 +263,7 @@ decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
                                  std::false_type /* has_suitable_ctor */,
                                  std::true_type /* is_default_constructible */)
 {
-    std::cout << "  adding get/set state\n";
+    DBUG("  adding get/set state");
     using Indices = std::index_sequence_for<MemberTypes...>;
     c.def("__getstate__", [](Class const& instance) {
         return get_state(instance, Class::Meta::fields(),
@@ -275,7 +271,7 @@ decltype(auto) add_pickling_impl(pybind11::class_<Class, Options...>& c,
                          Indices{});
     });
     return c.def("__setstate__", [](Class& instance, pybind11::tuple& t) {
-        std::cout << "Setting state!!!\n";
+        DBUG("Setting state!!!");
         set_state(instance, t, Class::Meta::fields(),
                   static_cast<std::tuple<MemberTypes...>*>(nullptr), Indices{});
     });
@@ -372,8 +368,7 @@ public:
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
-                std::cout << "binding aux " << demangle2(mangled_type_name)
-                          << '\n';
+                DBUG("binding aux ", demangle2(mangled_type_name));
                 auto vec_c = BindVector<Vec, smart_ptr<Vec>>::bind(
                     m.module, mangled_type_name);
                 return vec_c;
@@ -390,8 +385,7 @@ public:
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
-                std::cout << "binding aux arith "
-                          << demangle2(mangled_type_name) << '\n';
+                DBUG("binding aux arith ", demangle2(mangled_type_name));
                 auto vec_c = BindVector<Vec, smart_ptr<Vec>>::bind(
                     m.module, mangled_type_name);
                 return vec_c;
@@ -409,7 +403,7 @@ public:
     static void add(Module& m)
     {
         auto const type_name = demangle(typeid(Ref).name());
-        std::cout << "binding aux " << type_name << '\n';
+        DBUG("binding aux", type_name);
 
         if (AddAuxTypeGeneric::add_type_checked(
                 [](std::string const& mangled_type_name, Module& m) {
@@ -441,7 +435,7 @@ public:
     static void add(Module& m)
     {
         auto const type_name = demangle(typeid(Ref).name());
-        std::cout << "binding aux " << type_name << '\n';
+        DBUG("binding aux", type_name);
 
         if (AddAuxTypeGeneric::add_type_checked(
                 [](std::string const& mangled_type_name, Module& m) {
@@ -542,14 +536,11 @@ private:
         std::string const name_(name);
         auto setter = [member_ptr, name_](
             Class& c, typename ArgumentConverter<Res>::PyType value) {
-            std::cout
-                << "setting " << name_
-                << "\n  Class:  " << demangle(typeid(Class).name())
-                << "\n  Res:    " << demangle(typeid(Res).name())
-                << "\n  PyType: "
-                << demangle(
-                       typeid(typename ArgumentConverter<Res>::PyType).name())
-                << std::endl;
+            DBUG("setting ", name_,
+                 "\n  Class: ", demangle(typeid(Class).name()),
+                 "\n  Res:   ", demangle(typeid(Res).name()), "\n  PyType:",
+                 demangle(
+                     typeid(typename ArgumentConverter<Res>::PyType).name()));
             c.*member_ptr = ArgumentConverter<Res>::py2cpp(
                 std::forward<typename ArgumentConverter<Res>::PyType>(value));
         };
@@ -679,8 +670,6 @@ pybind11::class_<Class, Options...> Module::bind()
             "into this module, namely `" +
             *namespace_name + "' and `" + get_namespaces(full_name) + "'.");
     }
-    // for debugging only
-    // std::cout << "binding " << full_name << "\n";
 
     // add constructor
     detail::add_ctor(c);
