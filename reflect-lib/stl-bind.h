@@ -18,10 +18,10 @@ struct BindVector {
         return pybind11::bind_vector<T, Holder>(m, name)
             .def("__getstate__",
                  [](T const& v) {
-                     DBUG("  copying list", demangle<T>());
+                     REFLECT_LIB_DBUG("  copying list", demangle<T>());
                      auto l = pybind11::list(v.size());
                      for (std::size_t i = 0; i < v.size(); ++i) {
-                         DBUG("  copying list", i);
+                         REFLECT_LIB_DBUG("  copying list", i);
                          // TODO try to save copies: use &v[i] or v[i].get()
                          l[i] = v[i];
                      }
@@ -112,10 +112,10 @@ public:
         cl.def("__len__", &Vector::size);
 
         cl.def("__getstate__", [](Vector const& v) {
-              DBUG("  copying list", demangle<Vector>());
+              REFLECT_LIB_DBUG("  copying list", demangle<Vector>());
               auto l = pybind11::list(v.size());
               for (std::size_t i = 0; i < v.size(); ++i) {
-                  DBUG("  copying list", i);
+                  REFLECT_LIB_DBUG("  copying list", i);
                   // TODO try to save copies: use &v[i] or v[i].get()
                   l[i] = v[i].get();
               }
@@ -123,7 +123,7 @@ public:
           }).def("__setstate__", [](Vector& v, pybind11::list& l) {
             new (&v) Vector();
             v.reserve(pybind11::len(l));
-            DBUG("  setting state", demangle<Vector>());
+            REFLECT_LIB_DBUG("  setting state", demangle<Vector>());
             for (auto& e : l) {
                 // v.emplace_back(std::move(e).cast<typename
                 // Vector::value_type>());
@@ -211,10 +211,10 @@ public:
         cl.def("__len__", &Vector::size);
 
         cl.def("__getstate__", [](Vector const& v) {
-              DBUG("  copying list", demangle<Vector>());
+              REFLECT_LIB_DBUG("  copying list", demangle<Vector>());
               auto l = pybind11::list(v.size());
               for (std::size_t i = 0; i < v.size(); ++i) {
-                  DBUG("  copying list up", i);
+                  REFLECT_LIB_DBUG("  copying list up", i);
                   // TODO try to save copies: use &v[i] or v[i].get()
                   l[i] = v[i].get();
               }
@@ -222,7 +222,7 @@ public:
           }).def("__setstate__", [](Vector& v, pybind11::list& l) {
             new (&v) Vector();
             v.reserve(pybind11::len(l));
-            DBUG("  setting state", demangle<Vector>());
+            REFLECT_LIB_DBUG("  setting state", demangle<Vector>());
             for (auto& e : l) {
                 // v.emplace_back(std::move(e).cast<typename
                 // Vector::value_type>());

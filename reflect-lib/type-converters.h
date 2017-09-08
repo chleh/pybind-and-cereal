@@ -197,8 +197,8 @@ struct ArgumentConverter<std::vector<VecElem, VecAlloc>> {
             auto& p = o.cast<Vec&>();
             return p;
         } catch (pybind11::cast_error e) {
-            DBUG("  ERR:", e.what());
-            DBUG("  could not cast to", demangle<Vec>());
+            REFLECT_LIB_DBUG("  ERR:", e.what());
+            REFLECT_LIB_DBUG("  could not cast to", demangle<Vec>());
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -207,8 +207,8 @@ struct ArgumentConverter<std::vector<VecElem, VecAlloc>> {
                 v.emplace_back(e.cast<VecElem>());
             return v;
         } catch (pybind11::cast_error e) {
-            DBUG("  ERR:", e.what());
-            DBUG("  could not cast to pybind11::iterable");
+            REFLECT_LIB_DBUG("  ERR:", e.what());
+            REFLECT_LIB_DBUG("  could not cast to pybind11::iterable");
         }
 
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
@@ -228,8 +228,8 @@ struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
             auto& p = o.cast<Vec&>();
             return p;
         } catch (pybind11::cast_error e) {
-            DBUG("  ERR:", e.what());
-            DBUG("  could not cast to", demangle<Vec>());
+            REFLECT_LIB_DBUG("  ERR:", e.what());
+            REFLECT_LIB_DBUG("  could not cast to", demangle<Vec>());
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -238,8 +238,8 @@ struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
                 v.emplace_back(e.cast<smart_ptr<T>>().new_copied());
             return v;
         } catch (pybind11::cast_error e) {
-            DBUG("  ERR:", e.what());
-            DBUG("  could not cast to pybind11::iterable");
+            REFLECT_LIB_DBUG("  ERR:", e.what());
+            REFLECT_LIB_DBUG("  could not cast to pybind11::iterable");
         }
 
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
@@ -259,8 +259,8 @@ struct ArgumentConverter<std::vector<std::unique_ptr<T>, VecAlloc>> {
             auto& p = o.cast<RValueReference<Vec>&>();
             return Vec{p.get()};
         } catch (pybind11::cast_error e) {
-            DBUG("  ERR:", e.what());
-            DBUG("  could not cast to", demangle<Vec>());
+            REFLECT_LIB_DBUG("  ERR:", e.what());
+            REFLECT_LIB_DBUG("  could not cast to", demangle<Vec>());
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -269,8 +269,8 @@ struct ArgumentConverter<std::vector<std::unique_ptr<T>, VecAlloc>> {
                 v.emplace_back(e.cast<smart_ptr<T>>().new_copied());
             return v;
         } catch (pybind11::cast_error e) {
-            DBUG("  ERR:", e.what());
-            DBUG("  could not cast to pybind11::iterable");
+            REFLECT_LIB_DBUG("  ERR:", e.what());
+            REFLECT_LIB_DBUG("  could not cast to pybind11::iterable");
         }
 
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
@@ -415,7 +415,7 @@ struct UnpickleConverter<std::unique_ptr<P, D>> {
             auto p = o.cast<smart_ptr<P>>();
             return std::unique_ptr<P, D>(p.release());
         } catch (pybind11::cast_error e) {
-            DBUG("Error:", e.what());
+            REFLECT_LIB_DBUG("Error:", e.what());
         }
         // TODO better error message
         REFLECT_LIB_THROW(pybind11::type_error, "ERR.");
@@ -442,11 +442,11 @@ struct UnpickleConverter<std::vector<std::unique_ptr<P, D>>> {
             }
             return vec;
         } catch (pybind11::cast_error e) {
-            DBUG("Error:", e.what());
+            REFLECT_LIB_DBUG("Error:", e.what());
         } catch (std::exception e) {
-            DBUG("Exc. Error:", e.what());
+            REFLECT_LIB_DBUG("Exc. Error:", e.what());
         } catch (...) {
-            DBUG("OTHER EXC!");
+            REFLECT_LIB_DBUG("OTHER EXC!");
         }
 
         // TODO better error message

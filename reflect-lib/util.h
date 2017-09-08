@@ -17,7 +17,7 @@
 #define REFLECT_LIB_THROW(type, message) \
     throw type(std::string(__FILE__ ":" TO_STRING(__LINE__) ": ") + message)
 
-#define DBUG(...) \
+#define REFLECT_LIB_DBUG(...) \
     pybind11::print(__VA_ARGS__, "\t\t(" __FILE__ ":" TO_STRING(__LINE__) ")")
 
 namespace reflect_lib
