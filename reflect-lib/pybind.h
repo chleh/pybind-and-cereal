@@ -167,7 +167,7 @@ decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
                              Module& module, std::tuple<Ts...>* t)
 {
 #if 1
-    DBUG("add_ctor_impl", demangle(typeid(Class).name()));
+    DBUG("add_ctor_impl", demangle<Class>());
     DBUG("  ...tor_impl",
          demangle(typeid(std::tuple<typename std::remove_const<Ts>::type...>)
                       .name()));
@@ -184,7 +184,7 @@ decltype(auto) add_ctor(pybind11::class_<Class, Options...>& c,
                         std::tuple<Ts...>, Module& module)
 {
     using FieldTypes = typename GetFieldTypes<Ts...>::type;
-    DBUG("add_ctor", demangle(typeid(FieldTypes).name()));
+    DBUG("add_ctor", demangle<FieldTypes>());
 
     return add_ctor_impl(c, module, static_cast<FieldTypes*>(nullptr));
 }
@@ -364,7 +364,7 @@ public:
     template <typename SFINAE = void*>
     static void add(Module& m, SFINAE = nullptr)
     {
-        auto const type_name = demangle(typeid(Vec).name());
+        auto const type_name = demangle<Vec>();
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
@@ -381,7 +381,7 @@ public:
         Module& m,
         std::enable_if_t<std::is_arithmetic<VecElem>::value>* = nullptr)
     {
-        auto const type_name = demangle(typeid(Vec).name());
+        auto const type_name = demangle<Vec>();
 
         AddAuxTypeGeneric::add_type_checked(
             [](std::string const& mangled_type_name, Module& m) {
@@ -402,7 +402,7 @@ private:
 public:
     static void add(Module& m)
     {
-        auto const type_name = demangle(typeid(Ref).name());
+        auto const type_name = demangle<Ref>();
         DBUG("binding aux", type_name);
 
         if (AddAuxTypeGeneric::add_type_checked(
@@ -434,7 +434,7 @@ private:
 public:
     static void add(Module& m)
     {
-        auto const type_name = demangle(typeid(Ref).name());
+        auto const type_name = demangle<Ref>();
         DBUG("binding aux", type_name);
 
         if (AddAuxTypeGeneric::add_type_checked(
@@ -536,9 +536,8 @@ private:
         std::string const name_(name);
         auto setter = [member_ptr, name_](
             Class& c, typename ArgumentConverter<Res>::PyType value) {
-            DBUG("setting ", name_,
-                 "\n  Class: ", demangle(typeid(Class).name()),
-                 "\n  Res:   ", demangle(typeid(Res).name()), "\n  PyType:",
+            DBUG("setting ", name_, "\n  Class: ", demangle<Class>(),
+                 "\n  Res:   ", demangle<Res>(), "\n  PyType:",
                  demangle(
                      typeid(typename ArgumentConverter<Res>::PyType).name()));
             c.*member_ptr = ArgumentConverter<Res>::py2cpp(

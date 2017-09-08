@@ -18,7 +18,7 @@ struct BindVector {
         return pybind11::bind_vector<T, Holder>(m, name)
             .def("__getstate__",
                  [](T const& v) {
-                     DBUG("  copying list", demangle(typeid(T).name()));
+                     DBUG("  copying list", demangle<T>());
                      auto l = pybind11::list(v.size());
                      for (std::size_t i = 0; i < v.size(); ++i) {
                          DBUG("  copying list", i);
@@ -112,7 +112,7 @@ public:
         cl.def("__len__", &Vector::size);
 
         cl.def("__getstate__", [](Vector const& v) {
-              DBUG("  copying list", demangle(typeid(Vector).name()));
+              DBUG("  copying list", demangle<Vector>());
               auto l = pybind11::list(v.size());
               for (std::size_t i = 0; i < v.size(); ++i) {
                   DBUG("  copying list", i);
@@ -123,7 +123,7 @@ public:
           }).def("__setstate__", [](Vector& v, pybind11::list& l) {
             new (&v) Vector();
             v.reserve(pybind11::len(l));
-            DBUG("  setting state", demangle(typeid(Vector).name()));
+            DBUG("  setting state", demangle<Vector>());
             for (auto& e : l) {
                 // v.emplace_back(std::move(e).cast<typename
                 // Vector::value_type>());
@@ -211,7 +211,7 @@ public:
         cl.def("__len__", &Vector::size);
 
         cl.def("__getstate__", [](Vector const& v) {
-              DBUG("  copying list", demangle(typeid(Vector).name()));
+              DBUG("  copying list", demangle<Vector>());
               auto l = pybind11::list(v.size());
               for (std::size_t i = 0; i < v.size(); ++i) {
                   DBUG("  copying list up", i);
@@ -222,7 +222,7 @@ public:
           }).def("__setstate__", [](Vector& v, pybind11::list& l) {
             new (&v) Vector();
             v.reserve(pybind11::len(l));
-            DBUG("  setting state", demangle(typeid(Vector).name()));
+            DBUG("  setting state", demangle<Vector>());
             for (auto& e : l) {
                 // v.emplace_back(std::move(e).cast<typename
                 // Vector::value_type>());

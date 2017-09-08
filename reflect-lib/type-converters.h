@@ -25,7 +25,7 @@ struct ArgumentConverterImpl {
         typename std::enable_if<!std::is_same<T, PyType const>::value,
                                 PyType&>::type* = nullptr)
     {
-        DBUG("conversion &&!" , demangle(typeid(PyType).name())
+        DBUG("conversion &&!" , demangle<PyType>())
                   );
         return o;
     }
@@ -35,14 +35,14 @@ struct ArgumentConverterImpl {
         typename std::enable_if<!std::is_same<T, PyType const>::value,
                                 PyType&>::type* = nullptr)
     {
-        DBUG("conversion &!" , demangle(typeid(PyType).name())
+        DBUG("conversion &!" , demangle<PyType>()
                   );
         return o;
     }
 #endif
     static CPPType py2cpp(PyType o)
     {
-        // DBUG("conversion const&!" , demangle(typeid(PyType).name())
+        // DBUG("conversion const&!" , demangle<PyType>()
         //           );
         return o;
     }
@@ -198,7 +198,7 @@ struct ArgumentConverter<std::vector<VecElem, VecAlloc>> {
             return p;
         } catch (pybind11::cast_error e) {
             DBUG("  ERR:", e.what());
-            DBUG("  could not cast to", demangle(typeid(Vec).name()));
+            DBUG("  could not cast to", demangle<Vec>());
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -229,7 +229,7 @@ struct ArgumentConverter<std::vector<std::shared_ptr<T>, VecAlloc>> {
             return p;
         } catch (pybind11::cast_error e) {
             DBUG("  ERR:", e.what());
-            DBUG("  could not cast to", demangle(typeid(Vec).name()));
+            DBUG("  could not cast to", demangle<Vec>());
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -260,7 +260,7 @@ struct ArgumentConverter<std::vector<std::unique_ptr<T>, VecAlloc>> {
             return Vec{p.get()};
         } catch (pybind11::cast_error e) {
             DBUG("  ERR:", e.what());
-            DBUG("  could not cast to", demangle(typeid(Vec).name()));
+            DBUG("  could not cast to", demangle<Vec>());
         }
         try {
             auto it = o.cast<pybind11::iterable>();
@@ -374,7 +374,7 @@ struct UnpickleConverterImpl {
 
     static CPPType py2cpp(PyType o)
     {
-        // DBUG("conversion const&!" , demangle(typeid(PyType).name())
+        // DBUG("conversion const&!" , demangle<PyType>()
         //           );
         return o.cast<CPPType>();
     }
