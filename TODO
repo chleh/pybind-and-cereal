@@ -69,7 +69,9 @@
 [ ] pickling support (maybe problems with const members)
     [v] pickling std::vector<std::shared_ptr<POLYMORPHIC>>
     [v] pickling std::vector<std::unique_ptr<POLYMORPHIC>>
+    [ ] base class members
 [ ] remove references from ArgumentConverter::AuxType
+[ ] check that module names do not contain double underscore (because they are used internally as escapes)
 
 
 Non-Features
