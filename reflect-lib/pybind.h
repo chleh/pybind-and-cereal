@@ -76,7 +76,7 @@ template <class Class, class... Cs>
 decltype(auto) add_ctor_if_default_constructible(
     pybind11::class_<Class, Cs...>& c, std::true_type)
 {
-    return c.def(pybind11::init());
+    return c.def(pybind11::init(), "default constructor");
 }
 
 template <class Class, class... Cs>
@@ -90,7 +90,7 @@ template <class Class, class... Cs>
 decltype(auto) add_ctor_if_copy_constructible(pybind11::class_<Class, Cs...>& c,
                                               std::true_type)
 {
-    return c.def(pybind11::init<Class const&>());
+    return c.def(pybind11::init<Class const&>(), "copy constructor");
 }
 
 template <class Class, class... Cs>
@@ -159,7 +159,7 @@ decltype(auto) add_ctor_impl(pybind11::class_<Class, Options...>& c,
         "__init__",
         [](Class& instance, typename ArgumentConverter<Ts>::PyType... args) {
             new (&instance) Class(ArgumentConverter<Ts>::py2cpp(args)...);
-        });
+        }, "constructor taking all of this classes' members as arguments");
 }
 
 template <class Class, class... Options, typename... Ts>
@@ -677,6 +677,7 @@ pybind11::class_<Class, Options...> Module::bind()
             "into this module, namely `" +
             *namespace_name + "' and `" + get_namespaces(full_name) + "'.");
     }
+    REFLECT_LIB_DBUG("namespace and name:", *namespace_name, " :: ", name);
 
     // add constructor
     detail::add_ctor(c);
