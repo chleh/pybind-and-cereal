@@ -360,6 +360,24 @@ struct PickleConverter<std::shared_ptr<P>> {
     static P const* cpp2py(std::shared_ptr<P> const& p) { return p.get(); }
 };
 
+template <typename... Ts>
+struct PickleConverter<std::tuple<Ts...>> {
+private:
+    template <std::size_t... Idcs>
+    static pybind11::tuple cpp2py_impl(std::tuple<Ts...> const& t,
+                                       std::index_sequence<Idcs...>)
+    {
+        return pybind11::make_tuple(&std::get<Idcs>(t)...);
+    }
+
+public:
+    static pybind11::tuple cpp2py(std::tuple<Ts...> const& t)
+    {
+        using Idcs = std::index_sequence_for<Ts...>;
+        return cpp2py_impl(t, Idcs{});
+    }
+};
+
 // end pickle converters ///////////////////////////////////////////////////////
 
 // TODO reduce duplicate code

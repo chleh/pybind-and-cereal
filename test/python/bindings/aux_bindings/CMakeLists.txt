@@ -1,0 +1,2 @@
+reflect_lib_add_python_module(aux_bindings aux_bindings.cpp)
+reflect_lib_target_link_libraries(aux_bindings PRIVATE reflection)

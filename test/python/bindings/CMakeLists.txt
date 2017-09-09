@@ -1,6 +1,7 @@
-add_subdirectory(types_one)
+add_subdirectory(aux_bindings)
 add_subdirectory(pickle_types)
 add_subdirectory(test_unique_ptr)
+add_subdirectory(types_one)
 
 # TODO What if two different projects have bindings generated with this
 # library and are used in the same python code afterwards?

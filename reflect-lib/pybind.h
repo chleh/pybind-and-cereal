@@ -455,7 +455,7 @@ public:
 };
 
 template <typename T>
-void add_aux_type(Type<T> t, Module& m)
+void add_aux_type(Type<T> /*t*/, Module& m)
 {
     // TODO this procedure might create lots of duplicate binding code in many
     // different modules
@@ -493,14 +493,19 @@ private:
         static_assert(!std::is_pointer<Res>::value,
                       "Pointer members are not supported by this library.");
 
-        op_impl(name, member_ptr,
-                std::is_const<std::remove_reference_t<Res>>{});
+        op_impl(name, member_ptr, std::integral_constant < bool,
+                (!std::is_copy_assignable<Res>::value &&
+                 !std::is_assignable<
+                     Res, typename ArgumentConverter<Res>::CPPType>::value) ||
+                    std::is_const<std::remove_reference_t<Res>>::value > {});
     }
 
     template <typename Res, typename Class>
     void op_impl(const char* name, Res(Class::*member_ptr),
                  std::true_type /* is_const */) const
     {
+        REFLECT_LIB_DBUG("  readonly property: ", name, "of type",
+                         demangle<Res>());
         auto getter = pybind11::cpp_function(
             [member_ptr](Class & c) ->
             typename ReturnValueConverter<Res&>::PyType {
@@ -523,6 +528,9 @@ private:
     void op_impl(const char* name, Res(Class::*member_ptr),
                  std::false_type /* is_const */) const
     {
+        REFLECT_LIB_DBUG("  readwrite property:", name, "of type",
+                         demangle<Res>());
+
         // get reference Res&
         auto getter = pybind11::cpp_function(
             [member_ptr](Class & c) ->
