@@ -1,7 +1,52 @@
 #pragma once
 
+// #include <pybind11/stl.h>  // for optional_caster
+
 #include "aux-types.h"
 #include "util.h"
+
+namespace boost
+{
+template <class T>
+class optional;
+
+}  // namespace boost
+
+// `boost::optional` as an example -- can be any `std::optional`-like container
+namespace pybind11 { namespace detail {
+// copied from pybind11/stl.h (this header file cannot be included, since it
+// apparently conflicts with our use of stl_bind.h
+// This type caster is intended to be used for std::optional and
+// std::experimental::optional
+template<typename T> struct optional_caster {
+    using value_conv = make_caster<typename T::value_type>;
+
+    template <typename T_>
+    static handle cast(T_ &&src, return_value_policy policy, handle parent) {
+        if (!src)
+            return none().inc_ref();
+        return value_conv::cast(*std::forward<T_>(src), policy, parent);
+    }
+
+    bool load(handle src, bool convert) {
+        if (!src) {
+            return false;
+        } else if (src.is_none()) {
+            return true;  // default-constructed value is already empty
+        }
+        value_conv inner_caster;
+        if (!inner_caster.load(src, convert))
+            return false;
+
+        value.emplace(cast_op<typename T::value_type &&>(std::move(inner_caster)));
+        return true;
+    }
+
+    PYBIND11_TYPE_CASTER(T, _("Optional[") + value_conv::name() + _("]"));
+};
+template <typename T>
+struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
+}}
 
 namespace reflect_lib
 {
@@ -339,6 +384,30 @@ struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
 
     using PyType = P*;
 };
+
+#if 0
+template <typename T>
+struct ReturnValueConverter<boost::optional<T> const&> {
+    using PyType = pybind11::object;
+    static PyType cpp2py(boost::optional<T> const& o)
+    {
+        if (o)
+            return &*o;
+        return pybind11::none();
+    }
+};
+
+template <typename T>
+struct ReturnValueConverter<boost::optional<T>> {
+    using PyType = pybind11::object;
+    static PyType cpp2py(boost::optional<T>&& o)
+    {
+        if (o)
+            return ReturnValueConverter<T&&>::cpp2py(std::move(*o));
+        return pybind11::none();
+    }
+};
+#endif
 
 // end return value converters /////////////////////////////////////////////////
 
