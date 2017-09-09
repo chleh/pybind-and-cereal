@@ -80,4 +80,5 @@ Non-Features
 * enums
 * templated member functions
 * pointer data members: conflicts with cereal
+* no "natural" support for nested classes
 
