@@ -165,30 +165,22 @@ std::string demangle2(std::string mangled_name)
     return mangled_name;
 }
 
+// TODO: that doesn't work for nested classes!
 std::string strip_namespaces(std::string name)
 {
-    std::string::size_type scope_pos = name.find("::");
-    if (scope_pos == name.npos)
+    auto const last_scope_pos =  name.find_first_of("&, <>()[]*");
+
+    auto const scope_pos = name.rfind("::", last_scope_pos);
+    if (scope_pos == name.npos) {
+        // :: not found
         return name;
-
-    std::string::size_type last_pos = name.find_first_of("&, <>()[]*");
-    if (last_pos == name.npos)
-        last_pos = name.length();
-
-    while (scope_pos < last_pos) {
-        auto const new_pos = name.find("::", scope_pos + 2);
-        if (new_pos != name.npos)
-            scope_pos = new_pos;
-        else
-            break;
     }
 
-    if (scope_pos == name.npos)
-        return name;
-
-    return name.substr(scope_pos + 2);
+    // :: found
+    return name.substr(scope_pos+2);
 }
 
+// TODO: that doesn't work for nested classes!
 std::string strip_outermost_namespace(std::string name)
 {
     auto const scope_pos = get_outermost_scope_pos(name);
@@ -200,11 +192,13 @@ std::string strip_outermost_namespace(std::string name)
     return name.substr(scope_pos + 2);
 }
 
+// TODO: that doesn't work for nested classes!
 bool is_scoped(const std::string& name)
 {
     return get_outermost_scope_pos(name) != name.npos;
 }
 
+// TODO: that doesn't work for nested classes!
 std::string get_namespaces(const std::string& name)
 {
     auto const last_pos =  name.find_first_of("&, <>()[]*");
