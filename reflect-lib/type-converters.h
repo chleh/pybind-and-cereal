@@ -12,6 +12,7 @@ class optional;
 
 }  // namespace boost
 
+#if 0
 // `boost::optional` as an example -- can be any `std::optional`-like container
 namespace pybind11 { namespace detail {
 // copied from pybind11/stl.h (this header file cannot be included, since it
@@ -47,6 +48,7 @@ template<typename T> struct optional_caster {
 template <typename T>
 struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
 }}
+#endif
 
 namespace reflect_lib
 {
@@ -388,23 +390,21 @@ struct ReturnValueConverter<std::unique_ptr<P, D> const&> {
 #if 0
 template <typename T>
 struct ReturnValueConverter<boost::optional<T> const&> {
-    using PyType = pybind11::object;
+    using PyType = T*;
     static PyType cpp2py(boost::optional<T> const& o)
     {
-        if (o)
-            return &*o;
-        return pybind11::none();
+        return o ? &*o : nullptr;
     }
 };
 
 template <typename T>
 struct ReturnValueConverter<boost::optional<T>> {
-    using PyType = pybind11::object;
+    using PyType = smart_ptr<T>;
     static PyType cpp2py(boost::optional<T>&& o)
     {
         if (o)
-            return ReturnValueConverter<T&&>::cpp2py(std::move(*o));
-        return pybind11::none();
+            return smart_ptr<T>{new T(std::move(*o))};
+        return smart_ptr<T>{};
     }
 };
 #endif
